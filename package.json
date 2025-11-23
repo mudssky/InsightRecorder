@@ -7,6 +7,7 @@
   "homepage": "https://electron-vite.org",
   "scripts": {
     "format": "prettier --write .",
+    "format:silent": "prettier --log-level warn --write .",
     "lint": "eslint --cache .",
     "lint:fix": "eslint --cache --fix .",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
@@ -25,7 +26,7 @@
     "build:win": "npm run build && electron-builder --win",
     "build:mac": "electron-vite build && electron-builder --mac",
     "build:linux": "electron-vite build && electron-builder --linux",
-    "qa": "pnpm typecheck && pnpm lint:fix && pnpm format",
+    "qa": "pnpm typecheck && pnpm lint:fix && pnpm format:silent",
     "prepare": "husky"
   },
   "dependencies": {
