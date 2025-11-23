@@ -136,8 +136,15 @@ export default function DeviceDetail(): React.JSX.Element {
         minSize: values.minSize ? Math.floor(values.minSize * 1024 * 1024) : undefined,
         maxSize: values.maxSize ? Math.floor(values.maxSize * 1024 * 1024) : undefined
       })
-      if (ok) message.success('已保存设备设置')
-      else message.error('保存失败')
+      if (ok) {
+        message.success('已保存设备设置')
+        try {
+          const { taskId } = await window.api.startExport({ deviceIds: [id] })
+          if (taskId) message.success('已启动同步任务')
+        } catch (e) {
+          message.error(String(e))
+        }
+      } else message.error('保存失败')
       await refresh()
     } catch (e) {
       message.error(String(e))
