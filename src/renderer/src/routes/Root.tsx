@@ -1,9 +1,11 @@
 import { Outlet } from '@tanstack/react-router'
 import { Layout, Menu, Row } from 'antd'
 import { useMemo } from 'react'
+import { useTheme } from '../theme/ThemeContext'
 import { useRouter, useRouterState } from '@tanstack/react-router'
 
 export default function Root(): React.JSX.Element {
+  const { isDark } = useTheme()
   const router = useRouter()
 
   const items = useMemo(
@@ -25,12 +27,12 @@ export default function Root(): React.JSX.Element {
   })()
 
   return (
-    <Layout className="h-screen bg-white">
+    <Layout className="h-screen">
       <Layout.Header className="border-b flex items-center px-0!">
-        <Row className="bg-white w-full!" justify={'space-between'}>
-          <div className="text-black font-semibold mr-6 bg-white px-[20px]">InsightRecorder</div>
+        <Row className="w-full!" justify={'space-between'}>
+          <div className="font-semibold mr-6 px-[20px]">InsightRecorder</div>
           <Menu
-            theme="dark"
+            theme={isDark ? 'dark' : 'light'}
             mode="horizontal"
             selectedKeys={[selectedKey]}
             items={items}

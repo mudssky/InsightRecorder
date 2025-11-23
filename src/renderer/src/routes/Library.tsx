@@ -50,8 +50,8 @@ const data: FileItem[] = [
 
 export default function Library(): React.JSX.Element {
   return (
-    <Layout className="h-full bg-white!">
-      <Layout.Sider width={280} className="bg-white border-r overflow-auto">
+    <Layout className="h-full">
+      <Layout.Sider width={280} className="border-r overflow-auto">
         <div className="px-4 py-3">
           <Typography.Title level={5} className="!mb-2">
             设备与项目
@@ -89,8 +89,8 @@ export default function Library(): React.JSX.Element {
         />
       </Layout.Sider>
 
-      <Layout className="bg-white! min-w-0">
-        <Layout.Header className="bg-white border-b px-4">
+      <Layout className="min-w-0">
+        <Layout.Header className="border-b px-4">
           <div className="flex items-center gap-2">
             <Typography.Title level={5} className="!mb-0">
               文件列表
@@ -115,7 +115,7 @@ export default function Library(): React.JSX.Element {
         </Layout.Content>
       </Layout>
 
-      <Layout.Sider width={420} className="bg-white! border-l overflow-auto">
+      <Layout.Sider width={420} className="border-l overflow-auto">
         <Tabs
           items={[
             {
@@ -124,7 +124,7 @@ export default function Library(): React.JSX.Element {
               children: (
                 <div className="p-4">
                   <Card size="small" bordered title="预览" className="mb-4">
-                    <div className="h-40 bg-gray-100 rounded" />
+                    <div className="h-40 bg-gray-100 dark:bg-gray-800 rounded" />
                   </Card>
                   <Space>
                     <Button type="primary">播放/暂停</Button>
@@ -139,11 +139,11 @@ export default function Library(): React.JSX.Element {
               label: '转写',
               children: (
                 <div className="p-4">
-                  <Typography.Paragraph className="text-gray-600">
+                  <Typography.Paragraph className="text-gray-600 dark:text-gray-300">
                     选择文件后在此显示转写文本与时间戳
                   </Typography.Paragraph>
                   <Card size="small" bordered>
-                    <div className="h-64 bg-gray-50 rounded" />
+                    <div className="h-64 bg-gray-50 dark:bg-gray-800 rounded" />
                   </Card>
                 </div>
               )

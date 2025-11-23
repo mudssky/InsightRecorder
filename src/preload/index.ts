@@ -1,8 +1,15 @@
-import { contextBridge } from 'electron'
+import { contextBridge, nativeTheme } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
 // Custom APIs for renderer
-const api = {}
+const api = {
+  getSystemTheme: (): 'dark' | 'light' => (nativeTheme.shouldUseDarkColors ? 'dark' : 'light'),
+  onSystemThemeUpdated: (handler: (mode: 'dark' | 'light') => void): (() => void) => {
+    const listener: () => void = () => handler(nativeTheme.shouldUseDarkColors ? 'dark' : 'light')
+    nativeTheme.on('updated', listener)
+    return () => nativeTheme.off('updated', listener)
+  }
+}
 
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise
