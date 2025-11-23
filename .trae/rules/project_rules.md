@@ -22,6 +22,44 @@
 
 包管理器：pnpm（仓库包含 `pnpm-lock.yaml`）。统一使用 `pnpm` 运行命令。
 
+## 项目结构
+
+- 根目录
+  - `resources/`：应用资源（如 `icon.png`）
+  - `tests/`：Vitest 基础配置与用例骨架（`vitest.config.ts`、`setup.ts` 等）
+  - `.trae/`：AI 规则与文档（`rules/project_rules.md`、`documents/*`）
+  - 配置文件：`electron.vite.config.ts`、`electron-builder.yml`、`eslint.config.mjs`、`tsconfig.node.json`、`tsconfig.web.json`
+- `src/main`（主进程）
+  - `index.ts`：主进程入口，初始化日志/快捷键，注册 IPC，创建窗口
+  - `windows.ts`：窗口创建与加载逻辑（保持 `contextIsolation: true`、`sandbox: true`）
+  - `usb.ts`：USB 设备监控（插拔事件通过 `device:changed` 推送渲染层）
+  - `ipc/`：主进程 IPC 注册模块
+    - `settings.ts`：主题设置 `settings:get/set`
+    - `appSettings.ts`：应用导出相关配置 `app-settings:get/get-all/update` 与默认值初始化
+    - `deviceList.ts`：设备枚举 `device:list`
+    - `deviceSettings.ts`：设备级设置读写 `device-settings:get/update`
+    - `deviceStats.ts`：设备统计 `device:stats`
+    - `export.ts`：导出/同步任务 `export:start/summary/cancel` 与进度事件
+  - `db/`：SQLite 访问层（`better-sqlite3`）
+    - `connection.ts`：数据库连接与建表（WAL 模式）
+    - `types.ts`：行类型定义（设备/文件/任务/事件）
+    - `devices.ts`：设备 CRUD 与最后同步时间更新
+    - `files.ts`：文件记录批量插入/更新
+    - `jobs.ts`：同步任务记录 CRUD
+    - `events.ts`：同步事件批量追加
+    - `stats.ts`：统计查询（设备文件数、已同步数）
+    - `index.ts`：统一导出入口
+- `src/preload`（预加载与 API 暴露）
+  - `index.ts`：通过 `contextBridge` 暴露白名单 API，禁止 `remote`
+  - `index.d.ts`：渲染端可用的预加载 API 类型声明
+  - `devices.ts`、`export.ts`、`settings.ts`、`theme.ts`：对应主进程 IPC 的前端调用封装
+- `src/renderer`（前端 UI）
+  - `src/renderer/src/router.ts`：路由配置（设备详情 `/devices/$id` 等）
+  - `src/renderer/src/routes/*`：页面组件（`Devices.tsx`、`DeviceDetail.tsx`、`Settings.tsx` 等）
+  - `src/renderer/src/components/*`：通用组件（如 `ThemeToggle.tsx`）
+  - `src/renderer/src/config/*`：ElectronStore 配置 Schema 与映射
+  - 入口：`index.html`、`main.tsx`
+
 ## 2. Code Standards
 
 - 命名
