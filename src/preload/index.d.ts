@@ -39,6 +39,22 @@ declare global {
           clearAfterExport: boolean
         }>
       ) => Promise<boolean>
+      getAppSettings: () => Promise<{
+        exportTargetPath: string
+        renameTemplate: string
+        extensions: string[]
+        concurrency: number
+        retryCount: number
+        clearAfterExport: boolean
+      }>
+      setAppSettings: (payload: {
+        exportTargetPath: string
+        renameTemplate: string
+        extensions: string[]
+        concurrency: number
+        retryCount: number
+        clearAfterExport: boolean
+      }) => Promise<boolean>
       listDevices: () => Promise<
         Array<{
           id: string

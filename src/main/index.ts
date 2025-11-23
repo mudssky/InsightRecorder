@@ -176,6 +176,24 @@ app.whenReady().then(() => {
     }
   )
 
+  ipcMain.handle('app-settings:get-all', () => {
+    const value = {
+      exportTargetPath: (appSettingsStore.get('exportTargetPath') as string | undefined) ?? '',
+      renameTemplate:
+        (appSettingsStore.get('renameTemplate') as string | undefined) ??
+        '{date:YYYYMMDD}-{time:HHmmss}-{title}-{device}',
+      extensions: (appSettingsStore.get('extensions') as string[] | undefined) ?? [
+        'wav',
+        'mp3',
+        'm4a'
+      ],
+      concurrency: (appSettingsStore.get('concurrency') as number | undefined) ?? 1,
+      retryCount: (appSettingsStore.get('retryCount') as number | undefined) ?? 0,
+      clearAfterExport: (appSettingsStore.get('clearAfterExport') as boolean | undefined) ?? false
+    }
+    return value
+  })
+
   ipcMain.handle(
     'app-settings:update',
     (
@@ -199,7 +217,27 @@ app.whenReady().then(() => {
       >
       for (const k of keys) {
         const v = partial[k]
-        if (v !== undefined) appSettingsStore.set(k, v as unknown)
+        if (v === undefined) continue
+        if (k === 'exportTargetPath' || k === 'renameTemplate') {
+          if (typeof v === 'string') appSettingsStore.set(k, v)
+          continue
+        }
+        if (k === 'extensions') {
+          if (Array.isArray(v) && v.every((x) => typeof x === 'string')) appSettingsStore.set(k, v)
+          continue
+        }
+        if (k === 'concurrency') {
+          if (typeof v === 'number' && Number.isInteger(v) && v >= 1) appSettingsStore.set(k, v)
+          continue
+        }
+        if (k === 'retryCount') {
+          if (typeof v === 'number' && Number.isInteger(v) && v >= 0) appSettingsStore.set(k, v)
+          continue
+        }
+        if (k === 'clearAfterExport') {
+          if (typeof v === 'boolean') appSettingsStore.set(k, v)
+          continue
+        }
       }
       return true
     }

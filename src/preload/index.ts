@@ -68,6 +68,26 @@ const api = {
   ): Promise<boolean> => {
     return ipcRenderer.invoke('app-settings:update', partial)
   },
+  getAppSettings: async (): Promise<{
+    exportTargetPath: string
+    renameTemplate: string
+    extensions: string[]
+    concurrency: number
+    retryCount: number
+    clearAfterExport: boolean
+  }> => {
+    return ipcRenderer.invoke('app-settings:get-all')
+  },
+  setAppSettings: async (payload: {
+    exportTargetPath: string
+    renameTemplate: string
+    extensions: string[]
+    concurrency: number
+    retryCount: number
+    clearAfterExport: boolean
+  }): Promise<boolean> => {
+    return ipcRenderer.invoke('app-settings:update', payload)
+  },
   listDevices: async (): Promise<
     Array<{
       id: string
