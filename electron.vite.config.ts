@@ -15,7 +15,8 @@ export default defineConfig({
       alias: {
         '@renderer': resolve('src/renderer/src'),
         '@main': resolve('src/main'),
-        '@preload': resolve('src/preload')
+        '@preload': resolve('src/preload'),
+        '@shared': resolve('src/shared')
       }
     },
     plugins: [react(), tailwindcss()]

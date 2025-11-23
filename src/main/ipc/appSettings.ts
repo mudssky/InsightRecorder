@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron'
 import type ElectronStore from 'electron-store'
-import type { AppSettings } from '@renderer/config/appSettings.schema'
+import type { AppSettings } from '@shared/config/appSettings.schema'
 
 type AppSettingsStore = Partial<AppSettings>
 

@@ -1,5 +1,5 @@
 import { ipcRenderer } from 'electron'
-import type { AppSettings } from '@renderer/config/appSettings.schema'
+import type { AppSettings } from '@shared/config/appSettings.schema'
 
 export type AppSettingsPartial = Partial<AppSettings>
 
