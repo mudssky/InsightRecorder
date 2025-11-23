@@ -28,7 +28,7 @@ export default function Root(): React.JSX.Element {
     <Layout className="h-screen bg-white">
       <Layout.Header className="border-b flex items-center px-0!">
         <Row className="bg-white w-full" justify={'space-between'}>
-          <div className="text-black font-semibold mr-6 bg-white px-[5px]">InsightRecorder</div>
+          <div className="text-black font-semibold mr-6 bg-white px-[20px]">InsightRecorder</div>
           <Menu
             theme="light"
             mode="horizontal"
