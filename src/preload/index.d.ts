@@ -75,6 +75,9 @@ declare global {
         }) => void
       ) => () => void
       cancelExport: (taskId: string) => Promise<boolean>
+      onDeviceChanged: (
+        handler: (payload: { action: 'added' | 'removed'; ts: number }) => void
+      ) => () => void
     }
   }
 }

@@ -9,6 +9,8 @@ import log from 'electron-log'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import drivelist from 'drivelist'
+import usbDetect from 'usb-detection'
 
 function createWindow(): void {
   // Create the browser window.
@@ -62,6 +64,24 @@ app.whenReady().then(() => {
   ipcMain.on('ping', () => {
     log.info('ipc: ping')
   })
+
+  try {
+    usbDetect.startMonitoring()
+  } catch (e) {
+    log.warn('usb-detection startMonitoring failed', e)
+  }
+  try {
+    usbDetect.on('add', () => {
+      const win = BrowserWindow.getAllWindows()[0]
+      win?.webContents.send('device:changed', { action: 'added', ts: Date.now() })
+    })
+    usbDetect.on('remove', () => {
+      const win = BrowserWindow.getAllWindows()[0]
+      win?.webContents.send('device:changed', { action: 'removed', ts: Date.now() })
+    })
+  } catch (e) {
+    log.warn('usb-detection events bind failed', e)
+  }
 
   interface SettingsSchema extends Record<string, unknown> {
     themeMode?: 'light' | 'dark' | 'system'
@@ -180,37 +200,43 @@ app.whenReady().then(() => {
   )
 
   ipcMain.handle('device:list', async () => {
-    const devices = [] as Array<{
+    const drives = (await drivelist.list()) as Array<{
+      description?: string
+      mountpoints?: Array<{ path: string }>
+      isUSB?: boolean
+      isRemovable?: boolean
+      isSystem?: boolean
+    }>
+    const devices: Array<{
       id: string
       label?: string
       mountpoint: string
       capacityTotal?: number
       capacityFree?: number
       lastSeenAt: number
-    }>
-    // Windows: 遍历盘符 A: 到 Z:
-    for (let code = 65; code <= 90; code++) {
-      const letter = String.fromCharCode(code)
-      const mount = `${letter}:\\`
-      try {
-        await fsp.access(mount)
-      } catch {
-        continue
+    }> = []
+    for (const d of drives) {
+      if (d.isSystem) continue
+      if (!(d.isUSB || d.isRemovable)) continue
+      const mps = d.mountpoints ?? []
+      for (const mp of mps) {
+        const mount = mp.path
+        let space: DiskSpace | undefined
+        try {
+          space = await checkDiskSpace(mount)
+        } catch (e) {
+          log.warn('checkDiskSpace error', e)
+        }
+        const letter = mount.replace(/:\\$/i, '').toUpperCase()
+        devices.push({
+          id: letter,
+          label: d.description,
+          mountpoint: mount,
+          capacityTotal: space?.size,
+          capacityFree: space?.free,
+          lastSeenAt: Date.now()
+        })
       }
-      let space: DiskSpace | undefined
-      try {
-        space = await checkDiskSpace(mount)
-      } catch (e) {
-        log.warn('checkDiskSpace error', e)
-      }
-      devices.push({
-        id: letter,
-        label: undefined,
-        mountpoint: mount,
-        capacityTotal: space?.size,
-        capacityFree: space?.free,
-        lastSeenAt: Date.now()
-      })
     }
     return devices
   })
@@ -427,6 +453,13 @@ app.whenReady().then(() => {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
+  })
+  app.on('will-quit', () => {
+    try {
+      usbDetect.stopMonitoring()
+    } catch (e) {
+      log.warn('usb-detection stopMonitoring failed', e)
+    }
   })
 })
 

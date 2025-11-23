@@ -40,10 +40,16 @@ export default function Devices(): React.JSX.Element {
   const refresh = async (): Promise<void> => {
     setLoading(true)
     try {
+      if (!('api' in window) || typeof window.api?.listDevices !== 'function') {
+        message.error(
+          '设备列表接口不可用：可能是预加载脚本未正确注入或上下文隔离配置异常。请重启应用，或检查 webPreferences.preload/contextIsolation 设置。'
+        )
+        return
+      }
       const list = await window.api.listDevices()
       setDevices(list)
     } catch (e) {
-      message.error(String(e))
+      message.error(`获取设备列表失败：${String(e)}`)
     } finally {
       setLoading(false)
     }
@@ -51,8 +57,12 @@ export default function Devices(): React.JSX.Element {
 
   useEffect(() => {
     void refresh()
+    const off = window.api?.onDeviceChanged?.(() => {
+      void refresh()
+    })
     return () => {
       if (unsubscribe) unsubscribe()
+      if (typeof off === 'function') off()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

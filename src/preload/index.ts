@@ -110,6 +110,16 @@ const api = {
   },
   cancelExport: async (taskId: string): Promise<boolean> => {
     return ipcRenderer.invoke('export:cancel', taskId)
+  },
+  onDeviceChanged: (
+    handler: (payload: { action: 'added' | 'removed'; ts: number }) => void
+  ): (() => void) => {
+    const listener = (
+      _e: Electron.IpcRendererEvent,
+      payload: { action: 'added' | 'removed'; ts: number }
+    ): void => handler(payload)
+    ipcRenderer.on('device:changed', listener)
+    return () => ipcRenderer.off('device:changed', listener)
   }
 }
 
