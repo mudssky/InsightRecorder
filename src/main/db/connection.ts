@@ -11,8 +11,9 @@ let db: ReturnType<typeof drizzle> | null = null
 
 export function getDb(): ReturnType<typeof drizzle> {
   if (db) return db
-  const userData = app.getPath('userData')
-  const dbPath = `${userData}/insightrecorder.db`
+  const dbPath = app.isPackaged
+    ? path.join(app.getPath('userData'), 'insightrecorder.db')
+    : path.join(__dirname, 'insightrecorder.db')
   sqlite = new Database(dbPath)
   db = drizzle(sqlite)
   db.run(sql`PRAGMA journal_mode = WAL`)
