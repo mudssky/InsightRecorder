@@ -13,7 +13,9 @@ import {
   Select,
   Input,
   Switch,
-  Empty
+  Empty,
+  Dropdown,
+  Tooltip
 } from 'antd'
 import { useRouter } from '@tanstack/react-router'
 
@@ -44,6 +46,19 @@ export default function Devices(): React.JSX.Element {
   const [showDisconnected, setShowDisconnected] = useState<boolean>(true)
   const [typeFilter, setTypeFilter] = useState<'recorder' | 'generic' | 'ignored' | 'all'>('all')
   const [query, setQuery] = useState<string>('')
+
+  const formatBytes = (bytes: number): string => {
+    if (!bytes || bytes <= 0) return '0 B'
+    const units = ['B', 'KB', 'MB', 'GB', 'TB']
+    let i = 0
+    let n = bytes
+    while (n >= 1024 && i < units.length - 1) {
+      n = n / 1024
+      i++
+    }
+    const val = n >= 100 ? Math.round(n) : Math.round(n * 10) / 10
+    return `${val} ${units[i]}`
+  }
 
   const displayDevices = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -76,12 +91,19 @@ export default function Devices(): React.JSX.Element {
       }
       const connected = await window.api.listDevices()
       const connectedSet = new Set(connected.map((d) => d.id))
+      const connectedMap = Object.fromEntries(connected.map((d) => [d.id, d]))
       setConnectedIds(connectedSet)
       let all: DeviceInfo[] = connected
       if (typeof window.api.listPersistedDevices === 'function') {
         try {
           const persistedList = await window.api.listPersistedDevices()
-          all = persistedList.length > 0 ? persistedList : connected
+          if (persistedList.length > 0) {
+            all = persistedList.map((d) =>
+              connectedMap[d.id] ? { ...d, ...connectedMap[d.id] } : d
+            )
+          } else {
+            all = connected
+          }
         } catch {
           all = connected
         }
@@ -187,35 +209,77 @@ export default function Devices(): React.JSX.Element {
             const free = d.capacityFree ?? 0
             const used = total > 0 ? total - free : 0
             const percent = total > 0 ? Math.round((used / total) * 100) : 0
+            const fileCount = statsMap[d.id]?.fileCount ?? 0
+            const syncedCount = statsMap[d.id]?.syncedCount ?? 0
+            const menu = {
+              items: [
+                { key: 'open', label: '在资源管理器打开' },
+                { key: 'sync', label: '开始同步' },
+                { key: 'copy', label: '复制设备ID' },
+                { key: 'detail', label: '查看详情' },
+                { key: 'refresh', label: '刷新设备' }
+              ],
+              onClick: async ({ key }: { key: string }) => {
+                try {
+                  if (key === 'open') {
+                    const ok = await window.api.openPath(d.mountpoint)
+                    if (!ok) message.error('打开文件夹失败')
+                  } else if (key === 'sync') {
+                    const { taskId } = await window.api.startExport({ deviceIds: [d.id] })
+                    if (taskId) message.success('已启动同步')
+                  } else if (key === 'copy') {
+                    await navigator.clipboard?.writeText(d.id)
+                    message.success('已复制设备ID')
+                  } else if (key === 'detail') {
+                    router.navigate({ to: `/devices/${d.id}` })
+                  } else if (key === 'refresh') {
+                    await refresh()
+                  }
+                } catch (e) {
+                  message.error(`操作失败：${String(e)}`)
+                }
+              }
+            }
             return (
               <Col key={d.id} span={8}>
-                <Card
-                  hoverable
-                  title={d.label || '可移动设备'}
-                  extra={
-                    <Space>
-                      <Typography.Text type={connectedIds.has(d.id) ? 'success' : 'secondary'}>
-                        {connectedIds.has(d.id) ? '已连接' : '未连接'}
-                      </Typography.Text>
-                      <Button
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          router.navigate({ to: `/devices/${d.id}` })
-                        }}
-                      >
-                        详情
-                      </Button>
+                <Dropdown menu={menu} trigger={['contextMenu']}>
+                  <Card
+                    hoverable
+                    title={d.label || '可移动设备'}
+                    extra={
+                      <Space>
+                        <Typography.Text type={connectedIds.has(d.id) ? 'success' : 'secondary'}>
+                          {connectedIds.has(d.id) ? '已连接' : '未连接'}
+                        </Typography.Text>
+                        <Button
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            router.navigate({ to: `/devices/${d.id}` })
+                          }}
+                        >
+                          详情
+                        </Button>
+                      </Space>
+                    }
+                  >
+                    <Space orientation="vertical" style={{ width: '100%' }}>
+                      <Typography.Text>挂载点：{d.mountpoint}</Typography.Text>
+                      <Tooltip title="已用/总容量">
+                        <Progress
+                          percent={percent}
+                          status="active"
+                          format={() => `${formatBytes(used)} / ${formatBytes(total)}`}
+                        />
+                      </Tooltip>
+                      <Tooltip title="已同步/文件总数">
+                        <Typography.Text>
+                          文件：{syncedCount}/{fileCount}
+                        </Typography.Text>
+                      </Tooltip>
                     </Space>
-                  }
-                >
-                  <Space orientation="vertical" style={{ width: '100%' }}>
-                    <Typography.Text>挂载点：{d.mountpoint}</Typography.Text>
-                    <Progress percent={percent} status="active" />
-                    <Typography.Text>文件数：{statsMap[d.id]?.fileCount ?? 0}</Typography.Text>
-                    <Typography.Text>已同步：{statsMap[d.id]?.syncedCount ?? 0}</Typography.Text>
-                  </Space>
-                </Card>
+                  </Card>
+                </Dropdown>
               </Col>
             )
           })

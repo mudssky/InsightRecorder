@@ -4,8 +4,9 @@ import * as theme from './theme'
 import * as settings from './settings'
 import * as devices from './devices'
 import * as exportApi from './export'
+import * as system from './system'
 
-const api = { ...theme, ...settings, ...devices, ...exportApi }
+const api = { ...theme, ...settings, ...devices, ...exportApi, ...system }
 
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise

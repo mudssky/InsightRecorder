@@ -10,6 +10,7 @@ import { registerDeviceListIPC } from './ipc/deviceList'
 import { registerExportIPC } from './ipc/export'
 import { registerDeviceSettingsIPC } from './ipc/deviceSettings'
 import { registerDeviceStatsIPC } from './ipc/deviceStats'
+import { registerSystemIPC } from './ipc/system'
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
@@ -75,6 +76,7 @@ app.whenReady().then(() => {
 
   registerDeviceSettingsIPC()
   registerDeviceStatsIPC()
+  registerSystemIPC()
 
   // 捕获未处理异常并写入日志
   process.on('uncaughtException', (error) => {
