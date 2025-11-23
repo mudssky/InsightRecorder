@@ -11,6 +11,7 @@ import { registerExportIPC } from './ipc/export'
 import { registerDeviceSettingsIPC } from './ipc/deviceSettings'
 import { registerDeviceStatsIPC } from './ipc/deviceStats'
 import { registerSystemIPC } from './ipc/system'
+import { getDb } from './db'
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
@@ -35,6 +36,8 @@ app.whenReady().then(() => {
   } catch (e) {
     log.warn('log.initialize failed', e)
   }
+
+  getDb()
 
   initUsbMonitoring()
 

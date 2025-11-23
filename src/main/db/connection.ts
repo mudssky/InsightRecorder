@@ -5,6 +5,7 @@ import { sql } from 'drizzle-orm'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
 import path from 'node:path'
 import { existsSync } from 'node:fs'
+import log from 'electron-log'
 
 let sqlite: Database.Database | null = null
 let db: ReturnType<typeof drizzle> | null = null
@@ -12,6 +13,7 @@ let db: ReturnType<typeof drizzle> | null = null
 export function getDb(): ReturnType<typeof drizzle> {
   if (db) return db
   const dbPath = path.join(app.getPath('userData'), 'insightrecorder.db')
+  log.info('db:init', dbPath)
   // const dbPath = app.isPackaged
   //   ? path.join(app.getPath('userData'), 'insightrecorder.db')
   //   : path.join(__dirname, 'insightrecorder.db')
@@ -19,8 +21,13 @@ export function getDb(): ReturnType<typeof drizzle> {
   db = drizzle(sqlite)
   db.run(sql`PRAGMA journal_mode = WAL`)
   const migrationsFolder = path.join(app.getAppPath(), 'drizzle')
-  if (existsSync(migrationsFolder)) {
-    migrate(db, { migrationsFolder })
+  const journalPath = path.join(migrationsFolder, 'meta', '_journal.json')
+  if (existsSync(journalPath)) {
+    try {
+      migrate(db, { migrationsFolder })
+    } catch (e) {
+      log.warn('db:migrate failed', e as unknown)
+    }
   }
   db.run(sql`
     CREATE TABLE IF NOT EXISTS devices (
