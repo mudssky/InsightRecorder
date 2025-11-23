@@ -16,8 +16,6 @@ import { useRouter, useParams } from '@tanstack/react-router'
 const EXT_OPTIONS = ['wav', 'mp3', 'm4a', 'flac', 'aac']
 const RULE_OPTIONS = [
   { label: '设备名-设备ID', value: 'label-id' },
-  { label: '设备ID/日期', value: 'id-date' },
-  { label: '设备名/日期', value: 'label-date' },
   { label: '自定义模板', value: 'custom' }
 ]
 
@@ -44,23 +42,9 @@ export default function DeviceDetail(): React.JSX.Element {
     const rule = form.getFieldValue('folderNameRule') as string | undefined
     const deviceLabel = settings?.label ?? '设备'
     const deviceId = id
-    const yyyy = '20250101'
-    const hhmmss = '120000'
-    const title = '示例文件'
-    const base =
-      rule === 'label-id'
-        ? `${deviceLabel}-${deviceId}`
-        : rule === 'id-date'
-          ? `${deviceId}/${yyyy}`
-          : rule === 'label-date'
-            ? `${deviceLabel}/${yyyy}`
-            : undefined
-    const tplStr = tpl ?? '{date:YYYYMMDD}-{time:HHmmss}-{title}-{device}'
-    const name = tplStr
-      .replace('{date:YYYYMMDD}', yyyy)
-      .replace('{time:HHmmss}', hhmmss)
-      .replace('{title}', title)
-      .replace('{device}', deviceId)
+    const base = rule === 'label-id' ? `${deviceLabel}-${deviceId}` : undefined
+    const tplStr = tpl ?? '{device}'
+    const name = tplStr.replace('{device}', deviceId)
     return base ? `${base}/${name}.wav` : name + '.wav'
   }, [form, settings, id])
 
@@ -97,10 +81,7 @@ export default function DeviceDetail(): React.JSX.Element {
         deleteSourceAfterSync: s?.deleteSourceAfterSync ?? app.deleteSourceAfterSyncDefault,
         syncRootDir: s?.syncRootDir && s.syncRootDir.length > 0 ? s.syncRootDir : globalPath,
         folderNameRule: s?.folderNameRule ?? app.folderNameRuleDefault,
-        folderTemplate:
-          s?.folderTemplate ??
-          app.renameTemplate ??
-          '{date:YYYYMMDD}-{time:HHmmss}-{title}-{device}',
+        folderTemplate: s?.folderTemplate ?? app.renameTemplate ?? '{device}',
         extensions:
           s?.extensions ??
           (app.extensions && app.extensions.length > 0 ? app.extensions : ['wav', 'mp3', 'm4a']),
@@ -186,7 +167,7 @@ export default function DeviceDetail(): React.JSX.Element {
             deleteSourceAfterSync: false,
             syncRootDir: '',
             folderNameRule: 'label-id',
-            folderTemplate: '{date:YYYYMMDD}-{time:HHmmss}-{title}-{device}',
+            folderTemplate: '{device}',
             extensions: ['wav', 'mp3', 'm4a'],
             minSize: undefined,
             maxSize: undefined
@@ -255,9 +236,12 @@ export default function DeviceDetail(): React.JSX.Element {
           >
             {() =>
               (form.getFieldValue('folderNameRule') as string) === 'custom' ? (
-                <Form.Item name="folderTemplate" label="模板字符串">
-                  <Input placeholder="{date:YYYYMMDD}-{time:HHmmss}-{title}-{device}" />
-                </Form.Item>
+                <>
+                  <Form.Item name="folderTemplate" label="模板字符串">
+                    <Input placeholder="{device}" />
+                  </Form.Item>
+                  <Typography.Text type="secondary">模板示例：{templatePreview}</Typography.Text>
+                </>
               ) : null
             }
           </Form.Item>

@@ -104,7 +104,7 @@ export function registerExportIPC(
               return
             }
             try {
-              const destDir = await buildTargetDir(targetBase, folderTemplate, deviceId, file)
+              const destDir = await buildTargetDir(targetBase, folderTemplate, deviceId)
               await ensureDir(destDir)
               const base = path.basename(file)
               const finalName = await resolveConflictName(destDir, base)
@@ -235,26 +235,17 @@ async function ensureDir(dirPath: string): Promise<void> {
 async function buildTargetDir(
   baseDir: string,
   template: string,
-  deviceId: string,
-  srcFile: string
+  deviceId: string
 ): Promise<string> {
-  const st = await fsp.stat(srcFile)
-  const date = new Date(st.mtimeMs)
-  const pad = (n: number): string => String(n).padStart(2, '0')
-  const yyyy = date.getFullYear()
-  const mm = pad(date.getMonth() + 1)
-  const dd = pad(date.getDate())
-  const hh = pad(date.getHours())
-  const mi = pad(date.getMinutes())
-  const ss = pad(date.getSeconds())
-  const title = path.basename(srcFile, path.extname(srcFile))
   const safeDevice = deviceId.replace(/[^a-zA-Z0-9-_]/g, '_')
-  const name = template
-    .replace('{date:YYYYMMDD}', `${yyyy}${mm}${dd}`)
-    .replace('{time:HHmmss}', `${hh}${mi}${ss}`)
-    .replace('{title}', title)
+  let name = template
+    .replace(/\{date:YYYYMMDD\}|\{time:HHmmss\}|\{title\}/g, '')
     .replace('{device}', safeDevice)
     .replace(/[<>:"/\\|?*]/g, '_')
+  name = name.replace(/\s+/g, ' ').trim()
+  name = name.replace(/[-_]{2,}/g, '-')
+  name = name.replace(/^(?:[-_\s]+)|(?:[-_\s]+)$/g, '')
+  if (!name) name = safeDevice
   return path.join(baseDir, name)
 }
 

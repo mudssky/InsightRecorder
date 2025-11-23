@@ -1,4 +1,5 @@
 import { Button, Input, Row, Segmented, Space, Typography, message, Radio, Select } from 'antd'
+import { useMemo } from 'react'
 import { useTheme } from '../theme/context'
 import { useEffect, useState } from 'react'
 import type { AppSettings } from '@shared/config/appSettings.schema'
@@ -6,8 +7,6 @@ import type { AppSettings } from '@shared/config/appSettings.schema'
 const EXT_OPTIONS = ['wav', 'mp3', 'm4a', 'flac', 'aac']
 const RULE_OPTIONS = [
   { label: '设备名-设备ID', value: 'label-id' },
-  { label: '设备ID/日期', value: 'id-date' },
-  { label: '设备名/日期', value: 'label-date' },
   { label: '自定义模板', value: 'custom' }
 ]
 
@@ -19,9 +18,7 @@ export default function Settings(): React.JSX.Element {
   const [folderNameRuleDefault, setFolderNameRuleDefault] = useState<
     'label-id' | 'id-date' | 'label-date' | 'custom'
   >('label-id')
-  const [renameTemplate, setRenameTemplate] = useState<string>(
-    '{date:YYYYMMDD}-{time:HHmmss}-{title}-{device}'
-  )
+  const [renameTemplate, setRenameTemplate] = useState<string>('{date:YYYYMMDD}-{title}-{device}')
   const [extensions, setExtensions] = useState<string[]>(['wav', 'mp3', 'm4a'])
 
   useEffect(() => {
@@ -31,8 +28,8 @@ export default function Settings(): React.JSX.Element {
         setExportPath(all.exportTargetPath || '')
         setAutoSyncDefault(!!all.autoSyncDefault)
         setDeleteSourceAfterSyncDefault(!!all.deleteSourceAfterSyncDefault)
-        setFolderNameRuleDefault(all.folderNameRuleDefault)
-        setRenameTemplate(all.renameTemplate || '{date:YYYYMMDD}-{time:HHmmss}-{title}-{device}')
+        setFolderNameRuleDefault(all.folderNameRuleDefault === 'custom' ? 'custom' : 'label-id')
+        setRenameTemplate(all.renameTemplate || '{date:YYYYMMDD}-{title}-{device}')
         setExtensions(
           all.extensions && all.extensions.length > 0 ? all.extensions : ['wav', 'mp3', 'm4a']
         )
@@ -41,6 +38,19 @@ export default function Settings(): React.JSX.Element {
       }
     })()
   }, [])
+  const templatePreview = useMemo(() => {
+    const deviceLabel = '设备'
+    const deviceId = 'DEV001'
+    const yyyy = '20250101'
+    const title = '示例文件'
+    const base = folderNameRuleDefault === 'label-id' ? `${deviceLabel}-${deviceId}` : undefined
+    const tplStr = renameTemplate || '{date:YYYYMMDD}-{title}-{device}'
+    const name = tplStr
+      .replace('{date:YYYYMMDD}', yyyy)
+      .replace('{title}', title)
+      .replace('{device}', deviceId)
+    return base ? `${base}/${name}` : name
+  }, [folderNameRuleDefault, renameTemplate])
   return (
     <div className="p-6">
       <Typography.Title level={3}>设置</Typography.Title>
@@ -161,8 +171,11 @@ export default function Settings(): React.JSX.Element {
                 style={{ width: 420 }}
                 value={renameTemplate}
                 onChange={(e) => setRenameTemplate(e.target.value)}
-                placeholder="{date:YYYYMMDD}-{time:HHmmss}-{title}-{device}"
+                placeholder="{date:YYYYMMDD}-{title}-{device}"
               />
+            </div>
+            <div className="mt-2">
+              <Typography.Text type="secondary">模板示例：{templatePreview}</Typography.Text>
             </div>
             <div className="mt-2">
               <Typography.Text type="secondary">
