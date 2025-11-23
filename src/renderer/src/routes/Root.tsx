@@ -32,7 +32,10 @@ export default function Root(): React.JSX.Element {
 
   return (
     <Layout className="h-screen">
-      <Layout.Header className={cn('flex items-center px-0!', !isDark && 'bg-white!')}>
+      <Layout.Header
+        className={cn('flex items-center px-0! sticky top-0 z-50', !isDark && 'bg-white!')}
+        // style={{ position: 'sticky', top: 0, zIndex: 100 }}
+      >
         <Row className="w-full!" justify={'space-between'}>
           <div className="font-semibold mr-6 px-[20px]">InsightRecorder</div>
           <Menu
