@@ -1,4 +1,4 @@
-import { Layout, Tabs, List, Table, Typography, Input, Space, Button, Tag } from 'antd'
+import { Layout, Tabs, List, Table, Typography, Input, Space, Button, Tag, Card } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 
 type FileItem = {
@@ -50,8 +50,8 @@ const data: FileItem[] = [
 
 export default function Library(): React.JSX.Element {
   return (
-    <Layout className="h-full">
-      <Layout.Sider width={280} className="bg-white border-r">
+    <Layout className="h-full bg-white!">
+      <Layout.Sider width={280} className="bg-white border-r overflow-auto">
         <div className="px-4 py-3">
           <Typography.Title level={5} className="!mb-2">
             设备与项目
@@ -67,7 +67,7 @@ export default function Library(): React.JSX.Element {
                   size="small"
                   dataSource={['Sony ICD-TX660', 'Olympus WS-853', 'Philips DVT4110']}
                   renderItem={(item) => (
-                    <List.Item className="cursor-pointer px-4">{item}</List.Item>
+                    <List.Item className="cursor-pointer px-4 py-2">{item}</List.Item>
                   )}
                 />
               )
@@ -80,7 +80,7 @@ export default function Library(): React.JSX.Element {
                   size="small"
                   dataSource={['产品评审', '客户访谈', '灵感记录']}
                   renderItem={(item) => (
-                    <List.Item className="cursor-pointer px-4">{item}</List.Item>
+                    <List.Item className="cursor-pointer px-4 py-2">{item}</List.Item>
                   )}
                 />
               )
@@ -89,8 +89,8 @@ export default function Library(): React.JSX.Element {
         />
       </Layout.Sider>
 
-      <Layout className="bg-white min-w-0">
-        <Layout.Header className="bg-white border-b">
+      <Layout className="bg-white! min-w-0">
+        <Layout.Header className="bg-white border-b px-4">
           <div className="flex items-center gap-2">
             <Typography.Title level={5} className="!mb-0">
               文件列表
@@ -102,18 +102,20 @@ export default function Library(): React.JSX.Element {
             </Space>
           </div>
         </Layout.Header>
-        <Layout.Content className="p-4">
+        <Layout.Content className="p-4 overflow-auto">
           <Table<FileItem>
             size="small"
             columns={columns}
             dataSource={data}
-            pagination={{ pageSize: 10 }}
-            rowSelection={{}}
+            pagination={{ pageSize: 10, size: 'small' }}
+            rowSelection={{ columnWidth: 48 }}
+            tableLayout="fixed"
+            sticky
           />
         </Layout.Content>
       </Layout>
 
-      <Layout.Sider width={420} className="bg-white border-l">
+      <Layout.Sider width={420} className="bg-white! border-l overflow-auto">
         <Tabs
           items={[
             {
@@ -121,9 +123,11 @@ export default function Library(): React.JSX.Element {
               label: '播放器',
               children: (
                 <div className="p-4">
-                  <div className="h-40 bg-gray-100 rounded mb-4" />
+                  <Card size="small" bordered title="预览" className="mb-4">
+                    <div className="h-40 bg-gray-100 rounded" />
+                  </Card>
                   <Space>
-                    <Button>播放/暂停</Button>
+                    <Button type="primary">播放/暂停</Button>
                     <Button>快退</Button>
                     <Button>快进</Button>
                   </Space>
@@ -138,7 +142,9 @@ export default function Library(): React.JSX.Element {
                   <Typography.Paragraph className="text-gray-600">
                     选择文件后在此显示转写文本与时间戳
                   </Typography.Paragraph>
-                  <div className="h-64 bg-gray-50 rounded" />
+                  <Card size="small" bordered>
+                    <div className="h-64 bg-gray-50 rounded" />
+                  </Card>
                 </div>
               )
             }
