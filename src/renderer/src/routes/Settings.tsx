@@ -1,4 +1,4 @@
-import { Button, Input, Segmented, Space, Typography, message } from 'antd'
+import { Button, Input, Row, Segmented, Space, Typography, message } from 'antd'
 import { useTheme } from '../theme/context'
 import { useEffect, useState } from 'react'
 
@@ -19,6 +19,24 @@ export default function Settings(): React.JSX.Element {
   return (
     <div className="p-6">
       <Typography.Title level={3}>设置</Typography.Title>
+      <Row justify={'end'}>
+        <Space style={{ marginBottom: 12 }}>
+          <Button
+            type="primary"
+            onClick={async () => {
+              try {
+                await window.api.updateAppSettings({ exportTargetPath: exportPath })
+                message.success('已保存全局配置')
+              } catch (e) {
+                message.error(String(e))
+              }
+            }}
+          >
+            保存配置
+          </Button>
+        </Space>
+      </Row>
+
       <Space orientation="vertical" size={16}>
         <div>
           <Typography.Text>主题模式</Typography.Text>
@@ -51,7 +69,7 @@ export default function Settings(): React.JSX.Element {
                     if (picked) {
                       setExportPath(picked)
                       await window.api.updateAppSettings({ exportTargetPath: picked })
-                      message.success('已更新全局同步根目录')
+                      message.success('已更新全局同步根目录（选择后已生效）')
                     }
                   } catch (e) {
                     message.error(String(e))
@@ -59,19 +77,6 @@ export default function Settings(): React.JSX.Element {
                 }}
               >
                 选择目录
-              </Button>
-              <Button
-                type="primary"
-                onClick={async () => {
-                  try {
-                    await window.api.updateAppSettings({ exportTargetPath: exportPath })
-                    message.success('已保存全局同步根目录')
-                  } catch (e) {
-                    message.error(String(e))
-                  }
-                }}
-              >
-                保存
               </Button>
             </Space>
             <div className="mt-2">
