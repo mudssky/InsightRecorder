@@ -4,6 +4,7 @@ import ThemeToggle from '../components/ThemeToggle'
 import { useMemo } from 'react'
 import { useTheme } from '../theme/context'
 import { useRouter, useRouterState } from '@tanstack/react-router'
+import { cn } from '@mudssky/jsutils'
 
 export default function Root(): React.JSX.Element {
   const { isDark } = useTheme()
@@ -29,11 +30,9 @@ export default function Root(): React.JSX.Element {
 
   return (
     <Layout className="h-screen">
-      <Layout.Header className="border-b dark:border-gray-700 flex items-center px-0!">
+      <Layout.Header className={cn('flex items-center px-0!', !isDark && 'bg-white!')}>
         <Row className="w-full!" justify={'space-between'}>
-          <div className="font-semibold mr-6 px-[20px] text-white! dark:text-gray-200">
-            InsightRecorder
-          </div>
+          <div className="font-semibold mr-6 px-[20px]">InsightRecorder</div>
           <Menu
             theme={isDark ? 'dark' : 'light'}
             mode="horizontal"
