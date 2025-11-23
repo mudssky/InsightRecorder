@@ -51,7 +51,7 @@ const data: FileItem[] = [
 export default function Library(): React.JSX.Element {
   return (
     <div className="h-full flex">
-      <aside className="w-[280px] border-r bg-white dark:bg-gray-900 dark:border-gray-700 overflow-auto">
+      <aside className="w-[280px] border-r overflow-auto">
         <div className="px-4 py-3">
           <Typography.Title level={5} className="!mb-2">
             设备与项目
@@ -90,9 +90,9 @@ export default function Library(): React.JSX.Element {
       </aside>
 
       <section className="flex-1 min-w-0 flex flex-col">
-        <div className="border-b dark:border-gray-700 bg-white dark:bg-gray-900 px-4">
+        <div className="">
           <div className="flex items-center gap-2">
-            <Typography.Title level={5} className="!mb-0 dark:text-gray-200">
+            <Typography.Title level={5} className="!mb-0">
               文件列表
             </Typography.Title>
             <div className="flex-1" />
@@ -102,7 +102,7 @@ export default function Library(): React.JSX.Element {
             </Space>
           </div>
         </div>
-        <div className="p-4 overflow-auto flex-1 bg-gray-50 dark:bg-gray-900">
+        <div className="p-4 overflow-auto flex-1">
           <Table<FileItem>
             size="small"
             columns={columns}
@@ -115,7 +115,7 @@ export default function Library(): React.JSX.Element {
         </div>
       </section>
 
-      <aside className="w-[420px] border-l dark:border-gray-700 bg-white dark:bg-gray-900 overflow-auto">
+      <aside className="w-[420px] border-l overflow-auto">
         <Tabs
           items={[
             {
@@ -124,7 +124,7 @@ export default function Library(): React.JSX.Element {
               children: (
                 <div className="p-4">
                   <Card size="small" bordered title="预览" className="mb-4">
-                    <div className="h-40 bg-gray-100 dark:bg-gray-800 rounded" />
+                    <div className="h-40 rounded" />
                   </Card>
                   <Space>
                     <Button type="primary">播放/暂停</Button>
@@ -139,11 +139,11 @@ export default function Library(): React.JSX.Element {
               label: '转写',
               children: (
                 <div className="p-4">
-                  <Typography.Paragraph className="text-gray-600 dark:text-gray-300">
+                  <Typography.Paragraph className="">
                     选择文件后在此显示转写文本与时间戳
                   </Typography.Paragraph>
                   <Card size="small" variant="outlined">
-                    <div className="h-64 bg-gray-50 dark:bg-gray-800 rounded" />
+                    <div className="h-64 rounded" />
                   </Card>
                 </div>
               )
