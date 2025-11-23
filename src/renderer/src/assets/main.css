@@ -1,5 +1,5 @@
 @import './base.css';
-
+/*
 body {
   display: flex;
   align-items: center;
@@ -28,10 +28,12 @@ code {
 
 #root {
   display: flex;
-  align-items: center;
-  justify-content: center;
   flex-direction: column;
-  margin-bottom: 80px;
+  align-items: stretch;
+  justify-content: flex-start;
+  width: 100vw;
+  min-height: 100vh;
+  margin: 0;
 }
 
 .logo {
@@ -168,4 +170,4 @@ code {
   .actions {
     display: none;
   }
-}
+} */

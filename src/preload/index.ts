@@ -1,8 +1,12 @@
 import { contextBridge } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
+import * as theme from './theme'
+import * as settings from './settings'
+import * as devices from './devices'
+import * as exportApi from './export'
+import * as system from './system'
 
-// Custom APIs for renderer
-const api = {}
+const api = { ...theme, ...settings, ...devices, ...exportApi, ...system }
 
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise
