@@ -1,0 +1,73 @@
+import { ipcMain } from 'electron'
+import type ElectronStore from 'electron-store'
+
+export interface AppSettingsSchema extends Record<string, unknown> {
+  exportTargetPath?: string
+  renameTemplate?: string
+  extensions?: string[]
+  concurrency?: number
+  retryCount?: number
+  clearAfterExport?: boolean
+}
+
+export function initAppDefaults(store: ElectronStore<AppSettingsSchema>): void {
+  if (store.get('exportTargetPath') === undefined) store.set('exportTargetPath', '')
+  if (store.get('renameTemplate') === undefined)
+    store.set('renameTemplate', '{date:YYYYMMDD}-{time:HHmmss}-{title}-{device}')
+  if (store.get('extensions') === undefined) store.set('extensions', ['wav', 'mp3', 'm4a'])
+  if (store.get('concurrency') === undefined) store.set('concurrency', 1)
+  if (store.get('retryCount') === undefined) store.set('retryCount', 0)
+  if (store.get('clearAfterExport') === undefined) store.set('clearAfterExport', false)
+}
+
+export function registerAppSettingsIPC(store: ElectronStore<AppSettingsSchema>): void {
+  ipcMain.handle('app-settings:get', (_event, key: keyof AppSettingsSchema) => {
+    return store.get(key as string)
+  })
+
+  ipcMain.handle('app-settings:get-all', () => {
+    const value = {
+      exportTargetPath: (store.get('exportTargetPath') as string | undefined) ?? '',
+      renameTemplate:
+        (store.get('renameTemplate') as string | undefined) ??
+        '{date:YYYYMMDD}-{time:HHmmss}-{title}-{device}',
+      extensions: (store.get('extensions') as string[] | undefined) ?? ['wav', 'mp3', 'm4a'],
+      concurrency: (store.get('concurrency') as number | undefined) ?? 1,
+      retryCount: (store.get('retryCount') as number | undefined) ?? 0,
+      clearAfterExport: (store.get('clearAfterExport') as boolean | undefined) ?? false
+    }
+    return value
+  })
+
+  ipcMain.handle('app-settings:update', (_event, partial: Partial<AppSettingsSchema>) => {
+    const keys = Object.keys(partial) as Array<keyof AppSettingsSchema>
+    for (const k of keys) {
+      const v = partial[k]
+      if (v === undefined) continue
+      if (k === 'exportTargetPath' || k === 'renameTemplate') {
+        if (typeof v === 'string') store.set(k as string, v)
+        continue
+      }
+      if (k === 'extensions') {
+        if (Array.isArray(v) && (v as unknown[]).every((x) => typeof x === 'string'))
+          store.set(k as string, v)
+        continue
+      }
+      if (k === 'concurrency') {
+        if (typeof v === 'number' && Number.isInteger(v) && (v as number) >= 1)
+          store.set(k as string, v)
+        continue
+      }
+      if (k === 'retryCount') {
+        if (typeof v === 'number' && Number.isInteger(v) && (v as number) >= 0)
+          store.set(k as string, v)
+        continue
+      }
+      if (k === 'clearAfterExport') {
+        if (typeof v === 'boolean') store.set(k as string, v)
+        continue
+      }
+    }
+    return true
+  })
+}
