@@ -1,4 +1,4 @@
-import { contextBridge, nativeTheme } from 'electron'
+import { contextBridge, nativeTheme, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
 // Custom APIs for renderer
@@ -8,6 +8,12 @@ const api = {
     const listener: () => void = () => handler(nativeTheme.shouldUseDarkColors ? 'dark' : 'light')
     nativeTheme.on('updated', listener)
     return () => nativeTheme.off('updated', listener)
+  },
+  getUserThemeMode: async (): Promise<'light' | 'dark' | 'system' | undefined> => {
+    return ipcRenderer.invoke('settings:get', 'themeMode')
+  },
+  setUserThemeMode: async (mode: 'light' | 'dark' | 'system'): Promise<boolean> => {
+    return ipcRenderer.invoke('settings:set', 'themeMode', mode)
   }
 }
 

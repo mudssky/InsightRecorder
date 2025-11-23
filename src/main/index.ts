@@ -1,4 +1,5 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import ElectronStore from 'electron-store'
 import log from 'electron-log'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
@@ -55,6 +56,28 @@ app.whenReady().then(() => {
   // IPC test
   ipcMain.on('ping', () => {
     log.info('ipc: ping')
+  })
+
+  interface SettingsSchema extends Record<string, unknown> {
+    themeMode?: 'light' | 'dark' | 'system'
+  }
+  type ElectronStoreConstructor<T extends Record<string, unknown>> = new (
+    options?: unknown
+  ) => ElectronStore<T>
+  const maybeDefault = ElectronStore as unknown as {
+    default?: ElectronStoreConstructor<SettingsSchema>
+  }
+  const StoreCtor: ElectronStoreConstructor<SettingsSchema> =
+    maybeDefault.default ?? (ElectronStore as unknown as ElectronStoreConstructor<SettingsSchema>)
+  const settingsStore = new StoreCtor({ name: 'settings' })
+
+  ipcMain.handle('settings:get', (_event, key: 'themeMode') => {
+    return settingsStore.get(key)
+  })
+
+  ipcMain.handle('settings:set', (_event, key: 'themeMode', value: 'light' | 'dark' | 'system') => {
+    settingsStore.set(key, value)
+    return true
   })
 
   // 捕获未处理异常并写入日志
