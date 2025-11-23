@@ -1,27 +1,31 @@
 import { getDb } from './connection'
 import type { FileRow } from './types'
+import { files } from './schema'
 
 export function upsertFiles(rows: FileRow[]): void {
   const db = getDb()
-  const insert = db.prepare(
-    'INSERT OR IGNORE INTO files(deviceId,relativePath,size,mtimeMs,fingerprint,contentHash,title) VALUES (?,?,?,?,?,?,?)'
-  )
-  const update = db.prepare(
-    'UPDATE files SET size=?, mtimeMs=?, contentHash=?, title=? WHERE fingerprint=?'
-  )
-  const trx = db.transaction((items: FileRow[]) => {
-    for (const r of items) {
-      insert.run(
-        r.deviceId,
-        r.relativePath,
-        r.size,
-        r.mtimeMs,
-        r.fingerprint,
-        r.contentHash ?? null,
-        r.title ?? null
-      )
-      update.run(r.size, r.mtimeMs, r.contentHash ?? null, r.title ?? null, r.fingerprint)
+  db.transaction((tx) => {
+    for (const r of rows) {
+      tx.insert(files)
+        .values({
+          deviceId: r.deviceId,
+          relativePath: r.relativePath,
+          size: r.size,
+          mtimeMs: r.mtimeMs,
+          fingerprint: r.fingerprint,
+          contentHash: r.contentHash ?? null,
+          title: r.title ?? null
+        })
+        .onConflictDoUpdate({
+          target: files.fingerprint,
+          set: {
+            size: r.size,
+            mtimeMs: r.mtimeMs,
+            contentHash: r.contentHash ?? null,
+            title: r.title ?? null
+          }
+        })
+        .run()
     }
   })
-  trx(rows)
 }

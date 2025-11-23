@@ -1,57 +1,53 @@
 import { getDb } from './connection'
 import type { DeviceRow } from './types'
+import { devices } from './schema'
+import { eq, desc } from 'drizzle-orm'
 
 export function upsertDevice(row: Partial<DeviceRow> & { id: string; mountpoint: string }): void {
   const db = getDb()
   const now = Date.now()
-  const existing = db.prepare('SELECT id FROM devices WHERE id = ?').get(row.id)
-  if (existing) {
-    db.prepare(
-      `UPDATE devices SET label=?, mountpoint=?, type=?, autoSync=?, deleteSourceAfterSync=?, syncRootDir=?, folderNameRule=?, folderTemplate=?, extensions=?, minSize=?, maxSize=?, updatedAt=?, lastSeenAt=? WHERE id=` +
-        `?`
-    ).run(
-      row.label ?? null,
-      row.mountpoint,
-      row.type ?? 'generic',
-      row.autoSync ? 1 : 0,
-      row.deleteSourceAfterSync ? 1 : 0,
-      row.syncRootDir ?? null,
-      row.folderNameRule ?? null,
-      row.folderTemplate ?? null,
-      row.extensions ?? null,
-      row.minSize ?? null,
-      row.maxSize ?? null,
-      now,
-      row.lastSeenAt ?? now,
-      row.id
-    )
-  } else {
-    db.prepare(
-      `INSERT INTO devices (id,label,mountpoint,type,autoSync,deleteSourceAfterSync,syncRootDir,folderNameRule,folderTemplate,extensions,minSize,maxSize,createdAt,updatedAt,lastSeenAt)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
-    ).run(
-      row.id,
-      row.label ?? null,
-      row.mountpoint,
-      row.type ?? 'generic',
-      row.autoSync ? 1 : 0,
-      row.deleteSourceAfterSync ? 1 : 0,
-      row.syncRootDir ?? null,
-      row.folderNameRule ?? null,
-      row.folderTemplate ?? null,
-      row.extensions ?? null,
-      row.minSize ?? null,
-      row.maxSize ?? null,
-      now,
-      now,
-      row.lastSeenAt ?? now
-    )
-  }
+  db.insert(devices)
+    .values({
+      id: row.id,
+      label: row.label ?? null,
+      mountpoint: row.mountpoint,
+      type: row.type ?? 'generic',
+      autoSync: row.autoSync ? 1 : 0,
+      deleteSourceAfterSync: row.deleteSourceAfterSync ? 1 : 0,
+      syncRootDir: row.syncRootDir ?? null,
+      folderNameRule: row.folderNameRule ?? null,
+      folderTemplate: row.folderTemplate ?? null,
+      extensions: row.extensions ?? null,
+      minSize: row.minSize ?? null,
+      maxSize: row.maxSize ?? null,
+      createdAt: now,
+      updatedAt: now,
+      lastSeenAt: row.lastSeenAt ?? now
+    })
+    .onConflictDoUpdate({
+      target: devices.id,
+      set: {
+        label: row.label ?? null,
+        mountpoint: row.mountpoint,
+        type: row.type ?? 'generic',
+        autoSync: row.autoSync ? 1 : 0,
+        deleteSourceAfterSync: row.deleteSourceAfterSync ? 1 : 0,
+        syncRootDir: row.syncRootDir ?? null,
+        folderNameRule: row.folderNameRule ?? null,
+        folderTemplate: row.folderTemplate ?? null,
+        extensions: row.extensions ?? null,
+        minSize: row.minSize ?? null,
+        maxSize: row.maxSize ?? null,
+        updatedAt: now,
+        lastSeenAt: row.lastSeenAt ?? now
+      }
+    })
+    .run()
 }
 
 export function getDevice(id: string): DeviceRow | undefined {
   const db = getDb()
-  const row = db.prepare('SELECT * FROM devices WHERE id = ?').get(id) as DeviceRow | undefined
+  const row = db.select().from(devices).where(eq(devices.id, id)).get() as DeviceRow | undefined
   return row
 }
 
@@ -64,38 +60,34 @@ export function updateDevice(id: string, partial: Partial<DeviceRow>): void {
     ...partial,
     updatedAt: Date.now()
   }
-  db.prepare(
-    `UPDATE devices SET label=?, mountpoint=?, type=?, autoSync=?, deleteSourceAfterSync=?, syncRootDir=?, folderNameRule=?, folderTemplate=?, extensions=?, minSize=?, maxSize=?, updatedAt=?, lastSeenAt=?, lastSyncAt=? WHERE id=?`
-  ).run(
-    merged.label ?? null,
-    merged.mountpoint,
-    merged.type,
-    merged.autoSync ? 1 : 0,
-    merged.deleteSourceAfterSync ? 1 : 0,
-    merged.syncRootDir ?? null,
-    merged.folderNameRule ?? null,
-    merged.folderTemplate ?? null,
-    merged.extensions ?? null,
-    merged.minSize ?? null,
-    merged.maxSize ?? null,
-    merged.updatedAt,
-    merged.lastSeenAt ?? null,
-    merged.lastSyncAt ?? null,
-    id
-  )
+  db.update(devices)
+    .set({
+      label: merged.label ?? null,
+      mountpoint: merged.mountpoint,
+      type: merged.type,
+      autoSync: merged.autoSync ? 1 : 0,
+      deleteSourceAfterSync: merged.deleteSourceAfterSync ? 1 : 0,
+      syncRootDir: merged.syncRootDir ?? null,
+      folderNameRule: merged.folderNameRule ?? null,
+      folderTemplate: merged.folderTemplate ?? null,
+      extensions: merged.extensions ?? null,
+      minSize: merged.minSize ?? null,
+      maxSize: merged.maxSize ?? null,
+      updatedAt: merged.updatedAt,
+      lastSeenAt: merged.lastSeenAt ?? null,
+      lastSyncAt: merged.lastSyncAt ?? null
+    })
+    .where(eq(devices.id, id))
+    .run()
 }
 
 export function updateDeviceLastSync(id: string, ts: number): void {
   const db = getDb()
-  db.prepare('UPDATE devices SET lastSyncAt=? WHERE id=?').run(ts, id)
+  db.update(devices).set({ lastSyncAt: ts }).where(eq(devices.id, id)).run()
 }
 
 export function listDevices(): DeviceRow[] {
   const db = getDb()
-  const rows = db
-    .prepare(
-      'SELECT id,label,mountpoint,type,autoSync,deleteSourceAfterSync,syncRootDir,folderNameRule,folderTemplate,extensions,minSize,maxSize,createdAt,updatedAt,lastSeenAt,lastSyncAt FROM devices ORDER BY updatedAt DESC'
-    )
-    .all() as DeviceRow[]
+  const rows = db.select().from(devices).orderBy(desc(devices.updatedAt)).all() as DeviceRow[]
   return rows
 }

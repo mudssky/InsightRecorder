@@ -1,11 +1,18 @@
 import { getDb } from './connection'
 import type { SyncEventRow } from './types'
+import { sync_events } from './schema'
 
 export function appendEvents(events: SyncEventRow[]): void {
   const db = getDb()
-  const stmt = db.prepare('INSERT INTO sync_events(jobId,stage,fileId,ts,error) VALUES (?,?,?,?,?)')
-  const trx = db.transaction((items: SyncEventRow[]) => {
-    for (const e of items) stmt.run(e.jobId, e.stage, e.fileId ?? null, e.ts, e.error ?? null)
-  })
-  trx(events)
+  db.insert(sync_events)
+    .values(
+      events.map((e) => ({
+        jobId: e.jobId,
+        stage: e.stage,
+        fileId: e.fileId ?? null,
+        ts: e.ts,
+        error: e.error ?? null
+      }))
+    )
+    .run()
 }
