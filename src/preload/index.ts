@@ -3,11 +3,29 @@ import { electronAPI } from '@electron-toolkit/preload'
 
 // Custom APIs for renderer
 const api = {
-  getSystemTheme: (): 'dark' | 'light' => (nativeTheme.shouldUseDarkColors ? 'dark' : 'light'),
+  getSystemTheme: (): 'dark' | 'light' => {
+    try {
+      const v = (nativeTheme as unknown as { shouldUseDarkColors?: boolean })?.shouldUseDarkColors
+      return v ? 'dark' : 'light'
+    } catch {
+      return 'light'
+    }
+  },
   onSystemThemeUpdated: (handler: (mode: 'dark' | 'light') => void): (() => void) => {
-    const listener: () => void = () => handler(nativeTheme.shouldUseDarkColors ? 'dark' : 'light')
-    nativeTheme.on('updated', listener)
-    return () => nativeTheme.off('updated', listener)
+    const listener: () => void = () => {
+      try {
+        const v = (nativeTheme as unknown as { shouldUseDarkColors?: boolean })?.shouldUseDarkColors
+        handler(v ? 'dark' : 'light')
+      } catch {
+        handler('light')
+      }
+    }
+    try {
+      nativeTheme.on('updated', listener)
+      return () => nativeTheme.off('updated', listener)
+    } catch {
+      return () => {}
+    }
   },
   getUserThemeMode: async (): Promise<'light' | 'dark' | 'system' | undefined> => {
     return ipcRenderer.invoke('settings:get', 'themeMode')

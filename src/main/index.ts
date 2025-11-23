@@ -66,6 +66,12 @@ app.whenReady().then(() => {
   })
 
   try {
+    log.initialize()
+  } catch (e) {
+    log.warn('log.initialize failed', e)
+  }
+
+  try {
     usbDetect.startMonitoring()
   } catch (e) {
     log.warn('usb-detection startMonitoring failed', e)
