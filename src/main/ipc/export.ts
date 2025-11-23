@@ -61,7 +61,7 @@ export function registerExportIPC(
     }
 
     cancellationFlags.set(taskId, false)
-    ;(async () => {
+    await (async () => {
       try {
         for (const deviceId of payload.deviceIds) {
           const mount = await resolveMountpointById(deviceId)
@@ -104,19 +104,6 @@ export function registerExportIPC(
               updateHistory(exportHistoryStore, summary)
               return
             }
-            const fingerprint = await makeFingerprint(deviceId, file)
-            const already = exportIndexStore.get(fingerprint)
-            if (already) {
-              window?.webContents.send('export:progress', {
-                taskId,
-                stage: 'skip',
-                currentFile: file,
-                successCount: summary.success,
-                failCount: summary.failed,
-                total: summary.total
-              })
-              continue
-            }
             try {
               const targetPath = await buildTargetPath(
                 targetBase,
@@ -125,8 +112,27 @@ export function registerExportIPC(
                 mount,
                 file
               )
+              let targetExists = false
+              try {
+                await fsp.access(targetPath)
+                targetExists = true
+              } catch {
+                targetExists = false
+              }
+              if (targetExists) {
+                window?.webContents.send('export:progress', {
+                  taskId,
+                  stage: 'skip',
+                  currentFile: file,
+                  successCount: summary.success,
+                  failCount: summary.failed,
+                  total: summary.total
+                })
+                continue
+              }
               await ensureDir(path.dirname(targetPath))
               await fsp.copyFile(file, targetPath)
+              const fingerprint = await makeFingerprint(deviceId, file)
               exportIndexStore.set(fingerprint, true)
               summary.success = (summary.success ?? 0) + 1
               window?.webContents.send('export:progress', {
