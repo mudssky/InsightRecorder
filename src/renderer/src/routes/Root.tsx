@@ -14,6 +14,7 @@ export default function Root(): React.JSX.Element {
     () => [
       { key: 'home', label: '首页' },
       { key: 'library', label: '文件库' },
+      { key: 'devices', label: '设备' },
       { key: 'settings', label: '设置' }
     ],
     []
@@ -24,6 +25,7 @@ export default function Root(): React.JSX.Element {
     const current = location.pathname || '/'
     if (current === '/') return 'home'
     if (current.startsWith('/library')) return 'library'
+    if (current.startsWith('/devices')) return 'devices'
     if (current.startsWith('/settings')) return 'settings'
     return 'home'
   })()
@@ -42,6 +44,7 @@ export default function Root(): React.JSX.Element {
               const map: Record<string, string> = {
                 home: '/',
                 library: '/library',
+                devices: '/devices',
                 settings: '/settings'
               }
               const to = map[e.key]

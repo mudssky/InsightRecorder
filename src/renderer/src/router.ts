@@ -8,6 +8,7 @@ import Root from './routes/Root'
 import Home from './routes/Home'
 import Library from './routes/Library'
 import Settings from './routes/Settings'
+import Devices from './routes/Devices'
 
 const rootRoute = createRootRoute({ component: Root })
 const indexRoute = createRoute({ getParentRoute: () => rootRoute, path: '/', component: Home })
@@ -21,8 +22,13 @@ const settingsRoute = createRoute({
   path: '/settings',
   component: Settings
 })
+const devicesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/devices',
+  component: Devices
+})
 
-const routeTree = rootRoute.addChildren([indexRoute, libraryRoute, settingsRoute])
+const routeTree = rootRoute.addChildren([indexRoute, libraryRoute, settingsRoute, devicesRoute])
 
 export const router = createRouter({ routeTree, history: createHashHistory() })
 
