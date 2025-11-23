@@ -1,5 +1,6 @@
 import { Outlet } from '@tanstack/react-router'
 import { Layout, Menu, Row } from 'antd'
+import ThemeToggle from '../components/ThemeToggle'
 import { useMemo } from 'react'
 import { useTheme } from '../theme/context'
 import { useRouter, useRouterState } from '@tanstack/react-router'
@@ -49,6 +50,9 @@ export default function Root(): React.JSX.Element {
             }}
             className="flex-1 min-w-0"
           />
+          <div className="px-[20px]">
+            <ThemeToggle variant="button" showLabel={false} size="small" />
+          </div>
         </Row>
       </Layout.Header>
       <Layout.Content>
