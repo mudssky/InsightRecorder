@@ -35,6 +35,7 @@ export default function DeviceDetail(): React.JSX.Element {
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [computedLabel, setComputedLabel] = useState<string | undefined>(undefined)
+  const [globalExportPath, setGlobalExportPath] = useState<string>('')
 
   const [form] = Form.useForm()
 
@@ -84,6 +85,8 @@ export default function DeviceDetail(): React.JSX.Element {
         }
       }
       setComputedLabel(fallbackLabel)
+      const globalPath = (await window.api.getAppSetting('exportTargetPath')) as string
+      setGlobalExportPath(globalPath || '')
       const minSizeMB = s?.minSize ? Math.round(s.minSize / 1024 / 1024) : undefined
       const maxSizeMB = s?.maxSize ? Math.round(s.maxSize / 1024 / 1024) : undefined
       form.setFieldsValue({
@@ -91,13 +94,10 @@ export default function DeviceDetail(): React.JSX.Element {
         type: s?.type ?? 'generic',
         autoSync: s?.autoSync ?? false,
         deleteSourceAfterSync: s?.deleteSourceAfterSync ?? false,
-        syncRootDir:
-          s?.syncRootDir && s.syncRootDir.length > 0
-            ? s.syncRootDir
-            : (((await window.api.getAppSetting('exportTargetPath')) as string) ?? ''),
+        syncRootDir: s?.syncRootDir && s.syncRootDir.length > 0 ? s.syncRootDir : globalPath || '',
         folderNameRule: s?.folderNameRule ?? 'label-id',
         folderTemplate: s?.folderTemplate ?? '{date:YYYYMMDD}-{time:HHmmss}-{title}-{device}',
-        extensions: s?.extensions ?? ['wav', 'mp3', 'm4a'],
+        extensions: s?.extensions ?? ['wav', 'mp3', 'm4a', 'aac', 'flac'],
         minSize: minSizeMB,
         maxSize: maxSizeMB
       })
@@ -201,15 +201,19 @@ export default function DeviceDetail(): React.JSX.Element {
           </Form.Item>
           <Form.Item name="syncRootDir" label="同步根目录">
             <Space>
-              <Input style={{ width: 360 }} placeholder="选择/输入同步到的根目录" />
+              <Input
+                style={{ width: 360 }}
+                placeholder={
+                  globalExportPath
+                    ? `选择/输入同步到的根目录（默认：${globalExportPath}）`
+                    : '选择/输入同步到的根目录'
+                }
+              />
               <Button
                 onClick={async () => {
                   try {
-                    const globalPath = await window.api.getAppSetting('exportTargetPath')
                     const current = form.getFieldValue('syncRootDir') as string | undefined
-                    const picked = await window.api.selectDirectory(
-                      current || (globalPath as string)
-                    )
+                    const picked = await window.api.selectDirectory(current || globalExportPath)
                     if (picked) form.setFieldsValue({ syncRootDir: picked })
                   } catch (e) {
                     message.error(String(e))
@@ -217,6 +221,13 @@ export default function DeviceDetail(): React.JSX.Element {
                 }}
               >
                 选择目录
+              </Button>
+              <Button
+                onClick={() => {
+                  form.setFieldsValue({ syncRootDir: globalExportPath })
+                }}
+              >
+                使用全局默认
               </Button>
             </Space>
           </Form.Item>
