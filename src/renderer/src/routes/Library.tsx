@@ -1,4 +1,4 @@
-import { Layout, Tabs, List, Table, Typography, Input, Space, Button, Tag, Card } from 'antd'
+import { Tabs, List, Table, Typography, Input, Space, Button, Tag, Card } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 
 type FileItem = {
@@ -50,8 +50,8 @@ const data: FileItem[] = [
 
 export default function Library(): React.JSX.Element {
   return (
-    <Layout className="h-full">
-      <Layout.Sider width={280} className="border-r dark:border-gray-700 overflow-auto">
+    <div className="h-full flex">
+      <aside className="w-[280px] border-r bg-white dark:bg-gray-900 dark:border-gray-700 overflow-auto">
         <div className="px-4 py-3">
           <Typography.Title level={5} className="!mb-2">
             设备与项目
@@ -87,12 +87,12 @@ export default function Library(): React.JSX.Element {
             }
           ]}
         />
-      </Layout.Sider>
+      </aside>
 
-      <Layout className="min-w-0">
-        <Layout.Header className="border-b dark:border-gray-700 px-4">
+      <section className="flex-1 min-w-0 flex flex-col">
+        <div className="border-b dark:border-gray-700 bg-white dark:bg-gray-900 px-4">
           <div className="flex items-center gap-2">
-            <Typography.Title level={5} className="!mb-0">
+            <Typography.Title level={5} className="!mb-0 dark:text-gray-200">
               文件列表
             </Typography.Title>
             <div className="flex-1" />
@@ -101,8 +101,8 @@ export default function Library(): React.JSX.Element {
               <Button type="primary">导出选中</Button>
             </Space>
           </div>
-        </Layout.Header>
-        <Layout.Content className="p-4 overflow-auto">
+        </div>
+        <div className="p-4 overflow-auto flex-1 bg-gray-50 dark:bg-gray-900">
           <Table<FileItem>
             size="small"
             columns={columns}
@@ -112,10 +112,10 @@ export default function Library(): React.JSX.Element {
             tableLayout="fixed"
             sticky
           />
-        </Layout.Content>
-      </Layout>
+        </div>
+      </section>
 
-      <Layout.Sider width={420} className="border-l dark:border-gray-700 overflow-auto">
+      <aside className="w-[420px] border-l dark:border-gray-700 bg-white dark:bg-gray-900 overflow-auto">
         <Tabs
           items={[
             {
@@ -142,7 +142,7 @@ export default function Library(): React.JSX.Element {
                   <Typography.Paragraph className="text-gray-600 dark:text-gray-300">
                     选择文件后在此显示转写文本与时间戳
                   </Typography.Paragraph>
-                  <Card size="small" bordered>
+                  <Card size="small" variant="outlined">
                     <div className="h-64 bg-gray-50 dark:bg-gray-800 rounded" />
                   </Card>
                 </div>
@@ -150,7 +150,7 @@ export default function Library(): React.JSX.Element {
             }
           ]}
         />
-      </Layout.Sider>
-    </Layout>
+      </aside>
+    </div>
   )
 }
