@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron'
 import type { DiskSpace } from 'check-disk-space'
-import checkDiskSpace from 'check-disk-space'
+import checkDiskSpaceModule from 'check-disk-space'
 import drivelist from 'drivelist'
 import log from 'electron-log'
 import { getDb, upsertDevice } from '../db'
@@ -29,8 +29,11 @@ export function registerDeviceListIPC(): void {
       for (const mp of mps) {
         const mount = mp.path
         let space: DiskSpace | undefined
+        const checkDiskSpaceFn =
+          (checkDiskSpaceModule as unknown as { default?: (path: string) => Promise<DiskSpace> })
+            .default ?? (checkDiskSpaceModule as unknown as (path: string) => Promise<DiskSpace>)
         try {
-          space = await checkDiskSpace(mount)
+          space = await checkDiskSpaceFn(mount)
         } catch (e) {
           log.warn('checkDiskSpace error', e)
         }
