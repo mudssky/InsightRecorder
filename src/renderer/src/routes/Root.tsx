@@ -1,7 +1,7 @@
 import { Outlet } from '@tanstack/react-router'
 import { Layout, Menu, Row } from 'antd'
 import { useMemo } from 'react'
-import { useRouter } from '@tanstack/react-router'
+import { useRouter, useRouterState } from '@tanstack/react-router'
 
 export default function Root(): React.JSX.Element {
   const router = useRouter()
@@ -15,8 +15,9 @@ export default function Root(): React.JSX.Element {
     []
   )
 
+  const location = useRouterState({ select: (s) => s.location })
   const selectedKey = (() => {
-    const current = (window.location.hash.replace('#', '') || '/').split('?')[0]
+    const current = location.pathname || '/'
     if (current === '/') return 'home'
     if (current.startsWith('/library')) return 'library'
     if (current.startsWith('/settings')) return 'settings'
