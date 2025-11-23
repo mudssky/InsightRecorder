@@ -48,9 +48,8 @@ export function registerExportIPC(
       'm4a'
     ]
     const globalTargetBase = (appSettingsStore.get('exportTargetPath') as string | undefined) ?? ''
-    const globalRenameTemplate =
-      (appSettingsStore.get('renameTemplate') as string | undefined) ??
-      '{date:YYYYMMDD}-{time:HHmmss}-{title}-{device}'
+    const globalFolderTemplate =
+      (appSettingsStore.get('renameTemplate') as string | undefined) ?? '{device}'
 
     if (!globalTargetBase) {
       summary.status = 'FAILED'
@@ -68,7 +67,7 @@ export function registerExportIPC(
           if (!mount) continue
           let exts = globalExts
           let targetBase = globalTargetBase
-          let renameTemplate = globalRenameTemplate
+          let folderTemplate = globalFolderTemplate
           let minSize: number | undefined
           let maxSize: number | undefined
           let deleteSourceAfterSync =
@@ -87,7 +86,7 @@ export function registerExportIPC(
               }
               if (dev.syncRootDir && dev.syncRootDir.length) targetBase = dev.syncRootDir
               if (dev.folderTemplate && dev.folderTemplate.length)
-                renameTemplate = dev.folderTemplate
+                folderTemplate = dev.folderTemplate
               if (typeof dev.minSize === 'number') minSize = dev.minSize
               if (typeof dev.maxSize === 'number') maxSize = dev.maxSize
               deleteSourceAfterSync = !!dev.deleteSourceAfterSync
@@ -105,32 +104,11 @@ export function registerExportIPC(
               return
             }
             try {
-              const targetPath = await buildTargetPath(
-                targetBase,
-                renameTemplate,
-                deviceId,
-                mount,
-                file
-              )
-              let targetExists = false
-              try {
-                await fsp.access(targetPath)
-                targetExists = true
-              } catch {
-                targetExists = false
-              }
-              if (targetExists) {
-                window?.webContents.send('export:progress', {
-                  taskId,
-                  stage: 'skip',
-                  currentFile: file,
-                  successCount: summary.success,
-                  failCount: summary.failed,
-                  total: summary.total
-                })
-                continue
-              }
-              await ensureDir(path.dirname(targetPath))
+              const destDir = await buildTargetDir(targetBase, folderTemplate, deviceId, file)
+              await ensureDir(destDir)
+              const base = path.basename(file)
+              const finalName = await resolveConflictName(destDir, base)
+              const targetPath = path.join(destDir, finalName)
               await fsp.copyFile(file, targetPath)
               const fingerprint = await makeFingerprint(deviceId, file)
               exportIndexStore.set(fingerprint, true)
@@ -138,7 +116,7 @@ export function registerExportIPC(
               window?.webContents.send('export:progress', {
                 taskId,
                 stage: 'copied',
-                currentFile: file,
+                currentFile: targetPath,
                 successCount: summary.success,
                 failCount: summary.failed,
                 total: summary.total
@@ -254,11 +232,10 @@ async function ensureDir(dirPath: string): Promise<void> {
   await fsp.mkdir(dirPath, { recursive: true })
 }
 
-async function buildTargetPath(
+async function buildTargetDir(
   baseDir: string,
   template: string,
   deviceId: string,
-  mount: string,
   srcFile: string
 ): Promise<string> {
   const st = await fsp.stat(srcFile)
@@ -271,15 +248,34 @@ async function buildTargetPath(
   const mi = pad(date.getMinutes())
   const ss = pad(date.getSeconds())
   const title = path.basename(srcFile, path.extname(srcFile))
-  const rel = path.relative(mount, srcFile)
   const safeDevice = deviceId.replace(/[^a-zA-Z0-9-_]/g, '_')
   const name = template
     .replace('{date:YYYYMMDD}', `${yyyy}${mm}${dd}`)
     .replace('{time:HHmmss}', `${hh}${mi}${ss}`)
     .replace('{title}', title)
     .replace('{device}', safeDevice)
-  const subdir = path.dirname(rel)
-  return path.join(baseDir, safeDevice, subdir, `${name}${path.extname(srcFile)}`)
+    .replace(/[<>:"/\\|?*]/g, '_')
+  return path.join(baseDir, name)
+}
+
+async function resolveConflictName(dir: string, basename: string): Promise<string> {
+  const ext = path.extname(basename)
+  const name = path.basename(basename, ext)
+  let candidate = basename
+  let i = 1
+  while (true) {
+    try {
+      await fsp.access(path.join(dir, candidate))
+      i++
+      candidate = `${name} (${i})${ext}`
+      if (i > 100) {
+        const ts = Date.now()
+        candidate = `${name}-${ts}${ext}`
+      }
+    } catch {
+      return candidate
+    }
+  }
 }
 
 function updateHistory(
