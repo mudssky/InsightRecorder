@@ -8,6 +8,7 @@
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint --cache .",
+    "lint:fix": "eslint --cache --fix .",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
@@ -21,7 +22,7 @@
     "build:win": "npm run build && electron-builder --win",
     "build:mac": "electron-vite build && electron-builder --mac",
     "build:linux": "electron-vite build && electron-builder --linux",
-    "qa": "pnpm typecheck && pnpm lint && pnpm format"
+    "qa": "pnpm typecheck && pnpm lint:fix && pnpm format"
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.0",
