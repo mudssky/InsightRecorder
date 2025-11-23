@@ -1,4 +1,5 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import log from 'electron-log'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -13,7 +14,9 @@ function createWindow(): void {
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: true,
+      contextIsolation: true,
+      nodeIntegration: false
     }
   })
 
@@ -50,7 +53,17 @@ app.whenReady().then(() => {
   })
 
   // IPC test
-  ipcMain.on('ping', () => console.log('pong'))
+  ipcMain.on('ping', () => {
+    log.info('ipc: ping')
+  })
+
+  // 捕获未处理异常并写入日志
+  process.on('uncaughtException', (error) => {
+    log.error('uncaughtException', error)
+  })
+  process.on('unhandledRejection', (reason) => {
+    log.error('unhandledRejection', reason as unknown)
+  })
 
   createWindow()
 
