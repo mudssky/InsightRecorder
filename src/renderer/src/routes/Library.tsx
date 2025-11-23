@@ -51,7 +51,7 @@ const data: FileItem[] = [
 export default function Library(): React.JSX.Element {
   return (
     <Layout className="h-full">
-      <Layout.Sider width={280} className="border-r overflow-auto">
+      <Layout.Sider width={280} className="border-r dark:border-gray-700 overflow-auto">
         <div className="px-4 py-3">
           <Typography.Title level={5} className="!mb-2">
             设备与项目
@@ -90,7 +90,7 @@ export default function Library(): React.JSX.Element {
       </Layout.Sider>
 
       <Layout className="min-w-0">
-        <Layout.Header className="border-b px-4">
+        <Layout.Header className="border-b dark:border-gray-700 px-4">
           <div className="flex items-center gap-2">
             <Typography.Title level={5} className="!mb-0">
               文件列表
@@ -115,7 +115,7 @@ export default function Library(): React.JSX.Element {
         </Layout.Content>
       </Layout>
 
-      <Layout.Sider width={420} className="border-l overflow-auto">
+      <Layout.Sider width={420} className="border-l dark:border-gray-700 overflow-auto">
         <Tabs
           items={[
             {
