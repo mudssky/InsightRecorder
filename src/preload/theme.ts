@@ -1,6 +1,9 @@
 import { nativeTheme, ipcRenderer } from 'electron'
 
-export const getSystemTheme = (): 'dark' | 'light' => {
+export type ThemeMode = 'dark' | 'light'
+export type ThemeUserMode = 'light' | 'dark' | 'system'
+
+export const getSystemTheme = (): ThemeMode => {
   try {
     const v = (nativeTheme as unknown as { shouldUseDarkColors?: boolean })?.shouldUseDarkColors
     return v ? 'dark' : 'light'
@@ -9,7 +12,7 @@ export const getSystemTheme = (): 'dark' | 'light' => {
   }
 }
 
-export const onSystemThemeUpdated = (handler: (mode: 'dark' | 'light') => void): (() => void) => {
+export const onSystemThemeUpdated = (handler: (mode: ThemeMode) => void): (() => void) => {
   const listener: () => void = () => {
     try {
       const v = (nativeTheme as unknown as { shouldUseDarkColors?: boolean })?.shouldUseDarkColors
@@ -26,10 +29,10 @@ export const onSystemThemeUpdated = (handler: (mode: 'dark' | 'light') => void):
   }
 }
 
-export const getUserThemeMode = async (): Promise<'light' | 'dark' | 'system' | undefined> => {
+export const getUserThemeMode = async (): Promise<ThemeUserMode | undefined> => {
   return ipcRenderer.invoke('settings:get', 'themeMode')
 }
 
-export const setUserThemeMode = async (mode: 'light' | 'dark' | 'system'): Promise<boolean> => {
+export const setUserThemeMode = async (mode: ThemeUserMode): Promise<boolean> => {
   return ipcRenderer.invoke('settings:set', 'themeMode', mode)
 }
