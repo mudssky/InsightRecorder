@@ -218,7 +218,7 @@ export default function Devices(): React.JSX.Element {
           }
           setInsertModal({ open: false })
         }}
-        destroyOnClose
+        destroyOnHidden
       >
         <Space orientation="vertical" style={{ width: '100%' }}>
           <Typography.Text>设备类型：</Typography.Text>
