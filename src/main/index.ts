@@ -11,6 +11,15 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import drivelist from 'drivelist'
 import usbDetect from 'usb-detection'
+import {
+  getDb,
+  upsertDevice,
+  getDevice as dbGetDevice,
+  updateDevice as dbUpdateDevice,
+  countFilesByDevice,
+  countSyncedByDevice,
+  updateDeviceLastSync
+} from './db'
 
 function createWindow(): void {
   // Create the browser window.
@@ -272,14 +281,26 @@ app.whenReady().then(() => {
           log.warn('checkDiskSpace error', e)
         }
         const letter = mount.replace(/:\\$/i, '').toUpperCase()
-        devices.push({
+        const device = {
           id: letter,
           label: d.description,
           mountpoint: mount,
           capacityTotal: space?.size,
           capacityFree: space?.free,
           lastSeenAt: Date.now()
-        })
+        }
+        devices.push(device)
+        try {
+          getDb()
+          upsertDevice({
+            id: device.id,
+            label: device.label,
+            mountpoint: device.mountpoint,
+            lastSeenAt: device.lastSeenAt
+          })
+        } catch {
+          void 0
+        }
       }
     }
     return devices
@@ -301,17 +322,17 @@ app.whenReady().then(() => {
     exportHistoryStore.set('tasks', [summary, ...history])
 
     const window = BrowserWindow.getAllWindows()[0]
-    const exts = (appSettingsStore.get('extensions') as string[] | undefined) ?? [
+    const globalExts = (appSettingsStore.get('extensions') as string[] | undefined) ?? [
       'wav',
       'mp3',
       'm4a'
     ]
-    const targetBase = (appSettingsStore.get('exportTargetPath') as string | undefined) ?? ''
-    const renameTemplate =
+    const globalTargetBase = (appSettingsStore.get('exportTargetPath') as string | undefined) ?? ''
+    const globalRenameTemplate =
       (appSettingsStore.get('renameTemplate') as string | undefined) ??
       '{date:YYYYMMDD}-{time:HHmmss}-{title}-{device}'
 
-    if (!targetBase) {
+    if (!globalTargetBase) {
       summary.status = 'FAILED'
       summary.endedAt = Date.now()
       summary.error = '未配置导出目录'
@@ -325,7 +346,35 @@ app.whenReady().then(() => {
         for (const deviceId of payload.deviceIds) {
           const mount = await resolveMountpointById(deviceId)
           if (!mount) continue
-          const files = await collectAudioFiles(mount, new Set(exts))
+          let exts = globalExts
+          let targetBase = globalTargetBase
+          let renameTemplate = globalRenameTemplate
+          let minSize: number | undefined
+          let maxSize: number | undefined
+          let deleteSourceAfterSync =
+            (appSettingsStore.get('clearAfterExport') as boolean | undefined) ?? false
+          try {
+            const dev = dbGetDevice(deviceId)
+            if (dev) {
+              if (dev.extensions) {
+                try {
+                  const parsed = JSON.parse(dev.extensions) as string[]
+                  if (Array.isArray(parsed) && parsed.length) exts = parsed
+                } catch {
+                  void 0
+                }
+              }
+              if (dev.syncRootDir && dev.syncRootDir.length) targetBase = dev.syncRootDir
+              if (dev.folderTemplate && dev.folderTemplate.length)
+                renameTemplate = dev.folderTemplate
+              if (typeof dev.minSize === 'number') minSize = dev.minSize
+              if (typeof dev.maxSize === 'number') maxSize = dev.maxSize
+              deleteSourceAfterSync = !!dev.deleteSourceAfterSync
+            }
+          } catch {
+            void 0
+          }
+          const files = await collectAudioFiles(mount, new Set(exts), minSize, maxSize)
           summary.total = (summary.total ?? 0) + files.length
           for (const file of files) {
             if (cancellationFlags.get(taskId)) {
@@ -367,6 +416,13 @@ app.whenReady().then(() => {
                 failCount: summary.failed,
                 total: summary.total
               })
+              if (deleteSourceAfterSync) {
+                try {
+                  await fsp.unlink(file)
+                } catch {
+                  void 0
+                }
+              }
             } catch (err) {
               summary.failed = (summary.failed ?? 0) + 1
               window?.webContents.send('export:progress', {
@@ -379,6 +435,12 @@ app.whenReady().then(() => {
                 total: summary.total
               })
             }
+          }
+          try {
+            getDb()
+            updateDeviceLastSyncSafe(deviceId, Date.now())
+          } catch {
+            void 0
           }
         }
         summary.status = summary.failed ? 'FAILED' : 'SUCCESS'
@@ -416,7 +478,12 @@ app.whenReady().then(() => {
     }
   }
 
-  async function collectAudioFiles(rootDir: string, extSet: Set<string>): Promise<string[]> {
+  async function collectAudioFiles(
+    rootDir: string,
+    extSet: Set<string>,
+    minSize?: number,
+    maxSize?: number
+  ): Promise<string[]> {
     const results: string[] = []
     const stack: string[] = [rootDir]
     while (stack.length) {
@@ -433,7 +500,15 @@ app.whenReady().then(() => {
           stack.push(full)
         } else if (e.isFile()) {
           const ext = path.extname(e.name).replace(/^\./, '').toLowerCase()
-          if (extSet.has(ext)) results.push(full)
+          if (!extSet.has(ext)) continue
+          try {
+            const st = await fsp.stat(full)
+            if (typeof minSize === 'number' && st.size < minSize) continue
+            if (typeof maxSize === 'number' && st.size > maxSize) continue
+            results.push(full)
+          } catch {
+            void 0
+          }
         }
       }
     }
@@ -481,6 +556,84 @@ app.whenReady().then(() => {
     const tasks = (exportHistoryStore.get('tasks') as ExportTaskSummary[] | undefined) ?? []
     const next = tasks.map((t) => (t.id === updated.id ? { ...t, ...updated } : t))
     exportHistoryStore.set('tasks', next)
+  }
+
+  ipcMain.handle('device-settings:get', (_event, id: string) => {
+    try {
+      getDb()
+      const d = dbGetDevice(id)
+      return d ?? null
+    } catch {
+      return null
+    }
+  })
+
+  ipcMain.handle(
+    'device-settings:update',
+    (
+      _event,
+      id: string,
+      partial: Partial<{
+        label?: string
+        type?: 'recorder' | 'generic' | 'ignored'
+        autoSync?: boolean
+        deleteSourceAfterSync?: boolean
+        syncRootDir?: string
+        folderNameRule?: string
+        folderTemplate?: string
+        extensions?: string[]
+        minSize?: number
+        maxSize?: number
+      }> & { mountpoint?: string }
+    ) => {
+      try {
+        getDb()
+        const existed = dbGetDevice(id)
+        if (!existed) {
+          upsertDevice({ id, label: partial.label, mountpoint: partial.mountpoint ?? `${id}:\\` })
+        }
+        const extStr = Array.isArray(partial.extensions)
+          ? JSON.stringify(partial.extensions)
+          : undefined
+        dbUpdateDevice(id, {
+          label: partial.label,
+          mountpoint: partial.mountpoint ?? existed?.mountpoint ?? `${id}:\\`,
+          type: partial.type,
+          autoSync: partial.autoSync ? 1 : 0,
+          deleteSourceAfterSync: partial.deleteSourceAfterSync ? 1 : 0,
+          syncRootDir: partial.syncRootDir,
+          folderNameRule: partial.folderNameRule,
+          folderTemplate: partial.folderTemplate,
+          extensions: extStr,
+          minSize: partial.minSize,
+          maxSize: partial.maxSize
+        })
+        return true
+      } catch {
+        return false
+      }
+    }
+  )
+
+  ipcMain.handle('device:stats', (_event, id: string) => {
+    try {
+      getDb()
+      const fileCount = countFilesByDevice(id)
+      const syncedCount = countSyncedByDevice(id)
+      const device = dbGetDevice(id)
+      return { fileCount, syncedCount, lastSyncAt: device?.lastSyncAt ?? null }
+    } catch {
+      return { fileCount: 0, syncedCount: 0, lastSyncAt: null }
+    }
+  })
+
+  function updateDeviceLastSyncSafe(id: string, ts: number): void {
+    try {
+      getDb()
+      updateDeviceLastSync(id, ts)
+    } catch {
+      void 0
+    }
   }
 
   // 捕获未处理异常并写入日志
