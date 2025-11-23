@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Button, Card, Col, Modal, Progress, Row, Space, Typography, message } from 'antd'
+import { Button, Card, Col, Modal, Progress, Row, Space, Typography, message, Radio } from 'antd'
+import { useRouter } from '@tanstack/react-router'
 
 interface DeviceInfo {
   id: string
@@ -21,6 +22,7 @@ interface ProgressPayload {
 }
 
 export default function Devices(): React.JSX.Element {
+  const router = useRouter()
   const [devices, setDevices] = useState<DeviceInfo[]>([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
@@ -31,6 +33,15 @@ export default function Devices(): React.JSX.Element {
     total: number
   }>({ success: 0, failed: 0, total: 0 })
   const [unsubscribe, setUnsubscribe] = useState<(() => void) | null>(null)
+  const [statsMap, setStatsMap] = useState<
+    Record<string, { fileCount: number; syncedCount: number }>
+  >({})
+  const [autoSyncTriggered, setAutoSyncTriggered] = useState<Set<string>>(new Set())
+  const [insertModal, setInsertModal] = useState<{ open: boolean; deviceId?: string }>({
+    open: false
+  })
+  const [insertType, setInsertType] = useState<'recorder' | 'generic' | 'ignored'>('recorder')
+  const [insertAutoSync, setInsertAutoSync] = useState<boolean>(true)
 
   const percent = useMemo(() => {
     const done = progress.success + progress.failed
@@ -48,6 +59,17 @@ export default function Devices(): React.JSX.Element {
       }
       const list = await window.api.listDevices()
       setDevices(list)
+      const statsEntries = await Promise.all(
+        list.map(async (d) => {
+          try {
+            const st = await window.api.getDeviceStats(d.id)
+            return [d.id, { fileCount: st.fileCount, syncedCount: st.syncedCount }] as const
+          } catch {
+            return [d.id, { fileCount: 0, syncedCount: 0 }] as const
+          }
+        })
+      )
+      setStatsMap(Object.fromEntries(statsEntries))
     } catch (e) {
       message.error(`获取设备列表失败：${String(e)}`)
     } finally {
@@ -57,8 +79,30 @@ export default function Devices(): React.JSX.Element {
 
   useEffect(() => {
     void refresh()
-    const off = window.api?.onDeviceChanged?.(() => {
-      void refresh()
+    const off = window.api?.onDeviceChanged?.((payload) => {
+      void (async () => {
+        await refresh()
+        for (const d of devices) {
+          try {
+            const s = await window.api.getDeviceSettings(d.id)
+            if (s?.type === 'recorder' && s.autoSync && !autoSyncTriggered.has(d.id)) {
+              const next = new Set(autoSyncTriggered)
+              next.add(d.id)
+              setAutoSyncTriggered(next)
+              const { taskId } = await window.api.startExport({ deviceIds: [d.id] })
+              if (taskId) message.info(`已为设备 ${d.label ?? d.id} 启动自动同步`)
+            }
+            if (!s && payload.action === 'added') {
+              setInsertType('recorder')
+              setInsertAutoSync(true)
+              setInsertModal({ open: true, deviceId: d.id })
+              break
+            }
+          } catch {
+            continue
+          }
+        }
+      })()
     })
     return () => {
       if (unsubscribe) unsubscribe()
@@ -120,14 +164,27 @@ export default function Devices(): React.JSX.Element {
                 }}
                 title={d.label || '可移动设备'}
                 extra={
-                  <Typography.Text type={checked ? 'success' : undefined}>
-                    {checked ? '已选择' : '未选择'}
-                  </Typography.Text>
+                  <Space>
+                    <Typography.Text type={checked ? 'success' : undefined}>
+                      {checked ? '已选择' : '未选择'}
+                    </Typography.Text>
+                    <Button
+                      size="small"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        router.navigate({ to: `/devices/${d.id}` })
+                      }}
+                    >
+                      详情
+                    </Button>
+                  </Space>
                 }
               >
                 <Space direction="vertical" style={{ width: '100%' }}>
                   <Typography.Text>挂载点：{d.mountpoint}</Typography.Text>
                   <Progress percent={percent} status="active" />
+                  <Typography.Text>文件数：{statsMap[d.id]?.fileCount ?? 0}</Typography.Text>
+                  <Typography.Text>已同步：{statsMap[d.id]?.syncedCount ?? 0}</Typography.Text>
                 </Space>
               </Card>
             </Col>
@@ -146,6 +203,38 @@ export default function Devices(): React.JSX.Element {
           <Typography.Text>成功：{progress.success}</Typography.Text>
           <Typography.Text>失败：{progress.failed}</Typography.Text>
           <Typography.Text>总数：{progress.total}</Typography.Text>
+        </Space>
+      </Modal>
+      <Modal
+        open={insertModal.open}
+        title="新设备配置"
+        onCancel={() => setInsertModal({ open: false })}
+        onOk={async () => {
+          if (!insertModal.deviceId) return
+          const ok = await window.api.updateDeviceSettings(insertModal.deviceId, {
+            type: insertType,
+            autoSync: insertAutoSync
+          })
+          if (ok && insertType === 'recorder' && insertAutoSync) {
+            const { taskId } = await window.api.startExport({ deviceIds: [insertModal.deviceId] })
+            if (taskId) message.success('已按配置开始同步')
+          }
+          setInsertModal({ open: false })
+        }}
+        destroyOnClose
+      >
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <Typography.Text>设备类型：</Typography.Text>
+          <Radio.Group value={insertType} onChange={(e) => setInsertType(e.target.value)}>
+            <Radio value="recorder">录音笔</Radio>
+            <Radio value="generic">通用设备</Radio>
+            <Radio value="ignored">忽略</Radio>
+          </Radio.Group>
+          <Typography.Text>自动同步：</Typography.Text>
+          <Radio.Group value={insertAutoSync} onChange={(e) => setInsertAutoSync(e.target.value)}>
+            <Radio value={true}>开启</Radio>
+            <Radio value={false}>关闭</Radio>
+          </Radio.Group>
         </Space>
       </Modal>
     </div>
