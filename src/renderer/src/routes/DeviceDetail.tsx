@@ -34,6 +34,7 @@ export default function DeviceDetail(): React.JSX.Element {
   })
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [computedLabel, setComputedLabel] = useState<string | undefined>(undefined)
 
   const [form] = Form.useForm()
 
@@ -67,17 +68,35 @@ export default function DeviceDetail(): React.JSX.Element {
     try {
       const s = await window.api.getDeviceSettings(id)
       setSettings(s)
+      let fallbackLabel: string | undefined = s?.label
+      if (!fallbackLabel) {
+        try {
+          const connected = await window.api.listDevices()
+          const found = connected.find((d) => d.id === id)
+          fallbackLabel = found?.label
+          if (!fallbackLabel && typeof window.api.listPersistedDevices === 'function') {
+            const persisted = await window.api.listPersistedDevices()
+            const pf = persisted.find((d) => d.id === id)
+            fallbackLabel = pf?.label
+          }
+        } catch {
+          void 0
+        }
+      }
+      setComputedLabel(fallbackLabel)
+      const minSizeMB = s?.minSize ? Math.round(s.minSize / 1024 / 1024) : undefined
+      const maxSizeMB = s?.maxSize ? Math.round(s.maxSize / 1024 / 1024) : undefined
       form.setFieldsValue({
-        label: s?.label,
+        label: fallbackLabel ?? s?.label ?? '',
         type: s?.type ?? 'generic',
         autoSync: s?.autoSync ?? false,
         deleteSourceAfterSync: s?.deleteSourceAfterSync ?? false,
-        syncRootDir: s?.syncRootDir,
+        syncRootDir: s?.syncRootDir ?? '',
         folderNameRule: s?.folderNameRule ?? 'label-id',
-        folderTemplate: s?.folderTemplate,
+        folderTemplate: s?.folderTemplate ?? '{date:YYYYMMDD}-{time:HHmmss}-{title}-{device}',
         extensions: s?.extensions ?? ['wav', 'mp3', 'm4a'],
-        minSize: s?.minSize,
-        maxSize: s?.maxSize
+        minSize: minSizeMB,
+        maxSize: maxSizeMB
       })
       const st = await window.api.getDeviceStats(id)
       setStats(st)
@@ -136,8 +155,25 @@ export default function DeviceDetail(): React.JSX.Element {
         </Button>
         <Button onClick={startSync}>立即同步</Button>
       </Space>
-      <Card loading={loading} title={settings?.label || `设备 ${id}`}>
-        <Form form={form} labelCol={{ span: 6 }} wrapperCol={{ span: 12 }} layout="horizontal">
+      <Card loading={loading} title={settings?.label ?? computedLabel ?? `设备 ${id}`}>
+        <Form
+          form={form}
+          labelCol={{ span: 6 }}
+          wrapperCol={{ span: 12 }}
+          layout="horizontal"
+          initialValues={{
+            label: '',
+            type: 'generic',
+            autoSync: true,
+            deleteSourceAfterSync: false,
+            syncRootDir: '',
+            folderNameRule: 'label-id',
+            folderTemplate: '{date:YYYYMMDD}-{time:HHmmss}-{title}-{device}',
+            extensions: ['wav', 'mp3', 'm4a'],
+            minSize: undefined,
+            maxSize: undefined
+          }}
+        >
           <Form.Item name="label" label="设备名称">
             <Input placeholder="设备标签" />
           </Form.Item>
@@ -148,13 +184,13 @@ export default function DeviceDetail(): React.JSX.Element {
               <Radio value="ignored">忽略</Radio>
             </Radio.Group>
           </Form.Item>
-          <Form.Item name="autoSync" label="自动同步" valuePropName="checked">
+          <Form.Item name="autoSync" label="自动同步">
             <Radio.Group>
               <Radio value={true}>开启</Radio>
               <Radio value={false}>关闭</Radio>
             </Radio.Group>
           </Form.Item>
-          <Form.Item name="deleteSourceAfterSync" label="同步后删除源文件" valuePropName="checked">
+          <Form.Item name="deleteSourceAfterSync" label="同步后删除源文件">
             <Radio.Group>
               <Radio value={false}>保留</Radio>
               <Radio value={true}>删除</Radio>
