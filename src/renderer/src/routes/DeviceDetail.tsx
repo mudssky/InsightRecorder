@@ -91,7 +91,10 @@ export default function DeviceDetail(): React.JSX.Element {
         type: s?.type ?? 'generic',
         autoSync: s?.autoSync ?? false,
         deleteSourceAfterSync: s?.deleteSourceAfterSync ?? false,
-        syncRootDir: s?.syncRootDir ?? '',
+        syncRootDir:
+          (s?.syncRootDir && s.syncRootDir.length > 0)
+            ? s.syncRootDir
+            : ((await window.api.getAppSetting('exportTargetPath')) as string) ?? '',
         folderNameRule: s?.folderNameRule ?? 'label-id',
         folderTemplate: s?.folderTemplate ?? '{date:YYYYMMDD}-{time:HHmmss}-{title}-{device}',
         extensions: s?.extensions ?? ['wav', 'mp3', 'm4a'],
@@ -197,7 +200,23 @@ export default function DeviceDetail(): React.JSX.Element {
             </Radio.Group>
           </Form.Item>
           <Form.Item name="syncRootDir" label="同步根目录">
-            <Input placeholder="选择/输入同步到的根目录" />
+            <Space>
+              <Input style={{ width: 360 }} placeholder="选择/输入同步到的根目录" />
+              <Button
+                onClick={async () => {
+                  try {
+                    const globalPath = await window.api.getAppSetting('exportTargetPath')
+                    const current = form.getFieldValue('syncRootDir') as string | undefined
+                    const picked = await window.api.selectDirectory(current || (globalPath as string))
+                    if (picked) form.setFieldsValue({ syncRootDir: picked })
+                  } catch (e) {
+                    message.error(String(e))
+                  }
+                }}
+              >
+                选择目录
+              </Button>
+            </Space>
           </Form.Item>
           <Form.Item name="folderNameRule" label="文件夹命名">
             <Select options={RULE_OPTIONS} />

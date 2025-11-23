@@ -1,4 +1,4 @@
-import { ipcMain, shell } from 'electron'
+import { ipcMain, shell, dialog } from 'electron'
 import fs from 'fs/promises'
 import path from 'path'
 
@@ -13,6 +13,19 @@ export const registerSystemIPC = (): void => {
       return result === ''
     } catch {
       return false
+    }
+  })
+
+  ipcMain.handle('system:select-directory', async (_e, startPath?: unknown) => {
+    try {
+      const { canceled, filePaths } = await dialog.showOpenDialog({
+        properties: ['openDirectory', 'createDirectory'],
+        defaultPath: typeof startPath === 'string' && startPath.length > 0 ? startPath : undefined
+      })
+      if (canceled || !filePaths || filePaths.length === 0) return null
+      return filePaths[0]
+    } catch {
+      return null
     }
   })
 }
