@@ -92,9 +92,9 @@ export default function DeviceDetail(): React.JSX.Element {
         autoSync: s?.autoSync ?? false,
         deleteSourceAfterSync: s?.deleteSourceAfterSync ?? false,
         syncRootDir:
-          (s?.syncRootDir && s.syncRootDir.length > 0)
+          s?.syncRootDir && s.syncRootDir.length > 0
             ? s.syncRootDir
-            : ((await window.api.getAppSetting('exportTargetPath')) as string) ?? '',
+            : (((await window.api.getAppSetting('exportTargetPath')) as string) ?? ''),
         folderNameRule: s?.folderNameRule ?? 'label-id',
         folderTemplate: s?.folderTemplate ?? '{date:YYYYMMDD}-{time:HHmmss}-{title}-{device}',
         extensions: s?.extensions ?? ['wav', 'mp3', 'm4a'],
@@ -207,7 +207,9 @@ export default function DeviceDetail(): React.JSX.Element {
                   try {
                     const globalPath = await window.api.getAppSetting('exportTargetPath')
                     const current = form.getFieldValue('syncRootDir') as string | undefined
-                    const picked = await window.api.selectDirectory(current || (globalPath as string))
+                    const picked = await window.api.selectDirectory(
+                      current || (globalPath as string)
+                    )
                     if (picked) form.setFieldsValue({ syncRootDir: picked })
                   } catch (e) {
                     message.error(String(e))
