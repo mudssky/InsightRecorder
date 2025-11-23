@@ -6,7 +6,7 @@ export default function Settings(): React.JSX.Element {
   return (
     <div className="p-6">
       <Typography.Title level={3}>设置</Typography.Title>
-      <Space direction="vertical" size={16}>
+      <Space orientation="vertical" size={16}>
         <div>
           <Typography.Text>主题模式</Typography.Text>
           <div className="mt-2">
