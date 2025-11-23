@@ -234,8 +234,17 @@ export default function DeviceDetail(): React.JSX.Element {
           <Form.Item name="folderNameRule" label="文件夹命名">
             <Select options={RULE_OPTIONS} />
           </Form.Item>
-          <Form.Item name="folderTemplate" label="模板字符串">
-            <Input placeholder="{date:YYYYMMDD}-{time:HHmmss}-{title}-{device}" />
+          <Form.Item
+            noStyle
+            shouldUpdate={(prev, curr) => prev.folderNameRule !== curr.folderNameRule}
+          >
+            {() =>
+              (form.getFieldValue('folderNameRule') as string) === 'custom' ? (
+                <Form.Item name="folderTemplate" label="模板字符串">
+                  <Input placeholder="{date:YYYYMMDD}-{time:HHmmss}-{title}-{device}" />
+                </Form.Item>
+              ) : null
+            }
           </Form.Item>
           <Form.Item name="extensions" label="文件类型">
             <Select mode="multiple" options={EXT_OPTIONS.map((x) => ({ label: x, value: x }))} />
