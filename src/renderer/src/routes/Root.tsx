@@ -1,7 +1,7 @@
 import { Outlet } from '@tanstack/react-router'
 import { Layout, Menu, Row } from 'antd'
 import { useMemo } from 'react'
-import { useTheme } from '../theme/ThemeContext'
+import { useTheme } from '../theme/context'
 import { useRouter, useRouterState } from '@tanstack/react-router'
 
 export default function Root(): React.JSX.Element {

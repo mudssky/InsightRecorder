@@ -21,8 +21,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }): Reac
     return systemMode === 'dark'
   }, [themeMode, systemMode])
 
-  
-
   useEffect(() => {
     localStorage.setItem('themeMode', themeMode)
   }, [themeMode])
