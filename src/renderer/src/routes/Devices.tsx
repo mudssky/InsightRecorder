@@ -12,7 +12,8 @@ import {
   Radio,
   Select,
   Input,
-  Switch
+  Switch,
+  Empty
 } from 'antd'
 import { useRouter } from '@tanstack/react-router'
 
@@ -81,6 +82,11 @@ export default function Devices(): React.JSX.Element {
           ? await window.api.listPersistedDevices()
           : connected
       setPersisted(all)
+      if (connected.length === 0 && all.length === 0) {
+        message.warning('未检测到可移动设备，请确认设备已插入且分配了盘符')
+      } else if (connected.length > 0) {
+        message.success(`已检测到 ${connected.length} 台设备`)
+      }
       const statsEntries = await Promise.all(
         all.map(async (d) => {
           try {
@@ -164,43 +170,51 @@ export default function Devices(): React.JSX.Element {
         />
       </Space>
       <Row gutter={[12, 12]}>
-        {displayDevices.map((d) => {
-          const total = d.capacityTotal ?? 0
-          const free = d.capacityFree ?? 0
-          const used = total > 0 ? total - free : 0
-          const percent = total > 0 ? Math.round((used / total) * 100) : 0
-          return (
-            <Col key={d.id} span={8}>
-              <Card
-                hoverable
-                title={d.label || '可移动设备'}
-                extra={
-                  <Space>
-                    <Typography.Text type={connectedIds.has(d.id) ? 'success' : 'secondary'}>
-                      {connectedIds.has(d.id) ? '已连接' : '未连接'}
-                    </Typography.Text>
-                    <Button
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        router.navigate({ to: `/devices/${d.id}` })
-                      }}
-                    >
-                      详情
-                    </Button>
+        {displayDevices.length === 0 ? (
+          <Col span={24}>
+            <Card>
+              <Empty description="暂无设备" />
+            </Card>
+          </Col>
+        ) : (
+          displayDevices.map((d) => {
+            const total = d.capacityTotal ?? 0
+            const free = d.capacityFree ?? 0
+            const used = total > 0 ? total - free : 0
+            const percent = total > 0 ? Math.round((used / total) * 100) : 0
+            return (
+              <Col key={d.id} span={8}>
+                <Card
+                  hoverable
+                  title={d.label || '可移动设备'}
+                  extra={
+                    <Space>
+                      <Typography.Text type={connectedIds.has(d.id) ? 'success' : 'secondary'}>
+                        {connectedIds.has(d.id) ? '已连接' : '未连接'}
+                      </Typography.Text>
+                      <Button
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          router.navigate({ to: `/devices/${d.id}` })
+                        }}
+                      >
+                        详情
+                      </Button>
+                    </Space>
+                  }
+                >
+                  <Space orientation="vertical" style={{ width: '100%' }}>
+                    <Typography.Text>挂载点：{d.mountpoint}</Typography.Text>
+                    <Progress percent={percent} status="active" />
+                    <Typography.Text>文件数：{statsMap[d.id]?.fileCount ?? 0}</Typography.Text>
+                    <Typography.Text>已同步：{statsMap[d.id]?.syncedCount ?? 0}</Typography.Text>
                   </Space>
-                }
-              >
-                <Space orientation="vertical" style={{ width: '100%' }}>
-                  <Typography.Text>挂载点：{d.mountpoint}</Typography.Text>
-                  <Progress percent={percent} status="active" />
-                  <Typography.Text>文件数：{statsMap[d.id]?.fileCount ?? 0}</Typography.Text>
-                  <Typography.Text>已同步：{statsMap[d.id]?.syncedCount ?? 0}</Typography.Text>
-                </Space>
-              </Card>
-            </Col>
-          )
-        })}
+                </Card>
+              </Col>
+            )
+          })
+        )}
       </Row>
       <Modal
         open={insertModal.open}
