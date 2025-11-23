@@ -41,21 +41,40 @@ export function registerDeviceSettingsIPC(): void {
         if (!existed) {
           upsertDevice({ id, label: partial.label, mountpoint: partial.mountpoint ?? `${id}:\\` })
         }
-        const extStr = Array.isArray(partial.extensions)
+        const mountpoint = partial.mountpoint ?? existed?.mountpoint ?? `${id}:\\`
+        const typeVal = partial.type ?? existed?.type ?? 'generic'
+        const autoSyncVal =
+          typeof partial.autoSync === 'boolean'
+            ? partial.autoSync
+              ? 1
+              : 0
+            : (existed?.autoSync ?? 0)
+        const deleteAfterVal =
+          typeof partial.deleteSourceAfterSync === 'boolean'
+            ? partial.deleteSourceAfterSync
+              ? 1
+              : 0
+            : (existed?.deleteSourceAfterSync ?? 0)
+        const syncRootDirVal = partial.syncRootDir ?? existed?.syncRootDir
+        const folderNameRuleVal = partial.folderNameRule ?? existed?.folderNameRule
+        const folderTemplateVal = partial.folderTemplate ?? existed?.folderTemplate
+        const extensionsVal = Array.isArray(partial.extensions)
           ? JSON.stringify(partial.extensions)
-          : undefined
+          : existed?.extensions
+        const minSizeVal = typeof partial.minSize === 'number' ? partial.minSize : existed?.minSize
+        const maxSizeVal = typeof partial.maxSize === 'number' ? partial.maxSize : existed?.maxSize
         dbUpdateDevice(id, {
-          label: partial.label,
-          mountpoint: partial.mountpoint ?? existed?.mountpoint ?? `${id}:\\`,
-          type: partial.type,
-          autoSync: partial.autoSync ? 1 : 0,
-          deleteSourceAfterSync: partial.deleteSourceAfterSync ? 1 : 0,
-          syncRootDir: partial.syncRootDir,
-          folderNameRule: partial.folderNameRule,
-          folderTemplate: partial.folderTemplate,
-          extensions: extStr,
-          minSize: partial.minSize,
-          maxSize: partial.maxSize
+          label: partial.label ?? existed?.label,
+          mountpoint,
+          type: typeVal,
+          autoSync: autoSyncVal,
+          deleteSourceAfterSync: deleteAfterVal,
+          syncRootDir: syncRootDirVal,
+          folderNameRule: folderNameRuleVal,
+          folderTemplate: folderTemplateVal,
+          extensions: extensionsVal,
+          minSize: minSizeVal,
+          maxSize: maxSizeVal
         })
         return true
       } catch {
