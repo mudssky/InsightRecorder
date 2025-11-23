@@ -8,6 +8,9 @@ export interface AppSettingsSchema extends Record<string, unknown> {
   concurrency?: number
   retryCount?: number
   clearAfterExport?: boolean
+  autoSyncDefault?: boolean
+  deleteSourceAfterSyncDefault?: boolean
+  folderNameRuleDefault?: 'label-id' | 'id-date' | 'label-date' | 'custom'
 }
 
 export function initAppDefaults(store: ElectronStore<AppSettingsSchema>): void {
@@ -18,6 +21,11 @@ export function initAppDefaults(store: ElectronStore<AppSettingsSchema>): void {
   if (store.get('concurrency') === undefined) store.set('concurrency', 1)
   if (store.get('retryCount') === undefined) store.set('retryCount', 0)
   if (store.get('clearAfterExport') === undefined) store.set('clearAfterExport', false)
+  if (store.get('autoSyncDefault') === undefined) store.set('autoSyncDefault', true)
+  if (store.get('deleteSourceAfterSyncDefault') === undefined)
+    store.set('deleteSourceAfterSyncDefault', false)
+  if (store.get('folderNameRuleDefault') === undefined)
+    store.set('folderNameRuleDefault', 'label-id')
 }
 
 export function registerAppSettingsIPC(store: ElectronStore<AppSettingsSchema>): void {
@@ -34,7 +42,14 @@ export function registerAppSettingsIPC(store: ElectronStore<AppSettingsSchema>):
       extensions: (store.get('extensions') as string[] | undefined) ?? ['wav', 'mp3', 'm4a'],
       concurrency: (store.get('concurrency') as number | undefined) ?? 1,
       retryCount: (store.get('retryCount') as number | undefined) ?? 0,
-      clearAfterExport: (store.get('clearAfterExport') as boolean | undefined) ?? false
+      clearAfterExport: (store.get('clearAfterExport') as boolean | undefined) ?? false,
+      autoSyncDefault: (store.get('autoSyncDefault') as boolean | undefined) ?? true,
+      deleteSourceAfterSyncDefault:
+        (store.get('deleteSourceAfterSyncDefault') as boolean | undefined) ?? false,
+      folderNameRuleDefault:
+        (store.get('folderNameRuleDefault') as
+          | ('label-id' | 'id-date' | 'label-date' | 'custom')
+          | undefined) ?? 'label-id'
     }
     return value
   })
@@ -65,6 +80,15 @@ export function registerAppSettingsIPC(store: ElectronStore<AppSettingsSchema>):
       }
       if (k === 'clearAfterExport') {
         if (typeof v === 'boolean') store.set(k as string, v)
+        continue
+      }
+      if (k === 'autoSyncDefault' || k === 'deleteSourceAfterSyncDefault') {
+        if (typeof v === 'boolean') store.set(k as string, v)
+        continue
+      }
+      if (k === 'folderNameRuleDefault') {
+        const allowed = new Set(['label-id', 'id-date', 'label-date', 'custom'])
+        if (typeof v === 'string' && allowed.has(v as string)) store.set(k as string, v)
         continue
       }
     }

@@ -7,6 +7,9 @@ export type AppSettings = {
   concurrency: number
   retryCount: number
   clearAfterExport: boolean
+  autoSyncDefault: boolean
+  deleteSourceAfterSyncDefault: boolean
+  folderNameRuleDefault: 'label-id' | 'id-date' | 'label-date' | 'custom'
 }
 
 export type AppSettingsPartial = Partial<AppSettings>

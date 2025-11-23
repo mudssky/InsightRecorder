@@ -1,16 +1,41 @@
-import { Button, Input, Row, Segmented, Space, Typography, message } from 'antd'
+import { Button, Input, Row, Segmented, Space, Typography, message, Radio, Select } from 'antd'
 import { useTheme } from '../theme/context'
 import { useEffect, useState } from 'react'
+import type { AppSettings } from '../../../preload/settings'
+
+const EXT_OPTIONS = ['wav', 'mp3', 'm4a', 'flac', 'aac']
+const RULE_OPTIONS = [
+  { label: '设备名-设备ID', value: 'label-id' },
+  { label: '设备ID/日期', value: 'id-date' },
+  { label: '设备名/日期', value: 'label-date' },
+  { label: '自定义模板', value: 'custom' }
+]
 
 export default function Settings(): React.JSX.Element {
   const { themeMode, setThemeMode } = useTheme()
   const [exportPath, setExportPath] = useState<string>('')
+  const [autoSyncDefault, setAutoSyncDefault] = useState<boolean>(true)
+  const [deleteSourceAfterSyncDefault, setDeleteSourceAfterSyncDefault] = useState<boolean>(false)
+  const [folderNameRuleDefault, setFolderNameRuleDefault] = useState<
+    'label-id' | 'id-date' | 'label-date' | 'custom'
+  >('label-id')
+  const [renameTemplate, setRenameTemplate] = useState<string>(
+    '{date:YYYYMMDD}-{time:HHmmss}-{title}-{device}'
+  )
+  const [extensions, setExtensions] = useState<string[]>(['wav', 'mp3', 'm4a'])
 
   useEffect(() => {
     void (async () => {
       try {
-        const p = (await window.api.getAppSetting('exportTargetPath')) as string
-        setExportPath(p || '')
+        const all = (await window.api.getAppSettings()) as AppSettings
+        setExportPath(all.exportTargetPath || '')
+        setAutoSyncDefault(!!all.autoSyncDefault)
+        setDeleteSourceAfterSyncDefault(!!all.deleteSourceAfterSyncDefault)
+        setFolderNameRuleDefault(all.folderNameRuleDefault)
+        setRenameTemplate(all.renameTemplate || '{date:YYYYMMDD}-{time:HHmmss}-{title}-{device}')
+        setExtensions(
+          all.extensions && all.extensions.length > 0 ? all.extensions : ['wav', 'mp3', 'm4a']
+        )
       } catch (e) {
         message.error(String(e))
       }
@@ -25,7 +50,14 @@ export default function Settings(): React.JSX.Element {
             type="primary"
             onClick={async () => {
               try {
-                await window.api.updateAppSettings({ exportTargetPath: exportPath })
+                await window.api.updateAppSettings({
+                  exportTargetPath: exportPath,
+                  autoSyncDefault,
+                  deleteSourceAfterSyncDefault,
+                  folderNameRuleDefault,
+                  renameTemplate,
+                  extensions
+                })
                 message.success('已保存全局配置')
               } catch (e) {
                 message.error(String(e))
@@ -84,6 +116,71 @@ export default function Settings(): React.JSX.Element {
                 设备未设置专属目录时，默认按此全局目录同步；设备详情页可覆盖。
               </Typography.Text>
             </div>
+          </div>
+        </div>
+        <div>
+          <Typography.Text>自动同步（默认）</Typography.Text>
+          <div className="mt-2">
+            <Radio.Group
+              value={autoSyncDefault}
+              onChange={(e) => setAutoSyncDefault(e.target.value)}
+            >
+              <Radio value={true}>开启</Radio>
+              <Radio value={false}>关闭</Radio>
+            </Radio.Group>
+          </div>
+        </div>
+        <div>
+          <Typography.Text>同步后删除源文件（默认）</Typography.Text>
+          <div className="mt-2">
+            <Radio.Group
+              value={deleteSourceAfterSyncDefault}
+              onChange={(e) => setDeleteSourceAfterSyncDefault(e.target.value)}
+            >
+              <Radio value={false}>保留</Radio>
+              <Radio value={true}>删除</Radio>
+            </Radio.Group>
+          </div>
+        </div>
+        <div>
+          <Typography.Text>文件夹命名（默认）</Typography.Text>
+          <div className="mt-2">
+            <Select
+              style={{ width: 420 }}
+              value={folderNameRuleDefault}
+              options={RULE_OPTIONS}
+              onChange={setFolderNameRuleDefault}
+            />
+          </div>
+        </div>
+        {folderNameRuleDefault === 'custom' ? (
+          <div>
+            <Typography.Text>模板字符串（默认）</Typography.Text>
+            <div className="mt-2">
+              <Input
+                style={{ width: 420 }}
+                value={renameTemplate}
+                onChange={(e) => setRenameTemplate(e.target.value)}
+                placeholder="{date:YYYYMMDD}-{time:HHmmss}-{title}-{device}"
+              />
+            </div>
+            <div className="mt-2">
+              <Typography.Text type="secondary">
+                模板仅在“自定义模板”规则下生效；设备详情页可覆盖。
+              </Typography.Text>
+            </div>
+          </div>
+        ) : null}
+        <div>
+          <Typography.Text>文件类型（默认）</Typography.Text>
+          <div className="mt-2">
+            <Select
+              mode="multiple"
+              style={{ width: 420 }}
+              value={extensions}
+              options={EXT_OPTIONS.map((x) => ({ label: x, value: x }))}
+              onChange={setExtensions}
+            />
           </div>
         </div>
       </Space>

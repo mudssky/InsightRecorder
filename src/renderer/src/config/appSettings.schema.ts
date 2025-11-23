@@ -7,7 +7,10 @@ export const AppSettingsSchema = z
     extensions: z.array(z.string()).min(1),
     concurrency: z.number().int().min(1),
     retryCount: z.number().int().min(0),
-    clearAfterExport: z.boolean()
+    clearAfterExport: z.boolean(),
+    autoSyncDefault: z.boolean(),
+    deleteSourceAfterSyncDefault: z.boolean(),
+    folderNameRuleDefault: z.enum(['label-id', 'id-date', 'label-date', 'custom'])
   })
   .strict()
 
@@ -19,7 +22,10 @@ export const AppSettingsDefaults: AppSettings = {
   extensions: ['wav', 'mp3', 'm4a'],
   concurrency: 1,
   retryCount: 0,
-  clearAfterExport: false
+  clearAfterExport: false,
+  autoSyncDefault: true,
+  deleteSourceAfterSyncDefault: false,
+  folderNameRuleDefault: 'label-id'
 }
 
 export const parseAppSettings = (input: unknown): AppSettings => {

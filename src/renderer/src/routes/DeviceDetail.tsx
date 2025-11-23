@@ -85,19 +85,25 @@ export default function DeviceDetail(): React.JSX.Element {
         }
       }
       setComputedLabel(fallbackLabel)
-      const globalPath = (await window.api.getAppSetting('exportTargetPath')) as string
-      setGlobalExportPath(globalPath || '')
+      const app = await window.api.getAppSettings()
+      const globalPath = app.exportTargetPath || ''
+      setGlobalExportPath(globalPath)
       const minSizeMB = s?.minSize ? Math.round(s.minSize / 1024 / 1024) : undefined
       const maxSizeMB = s?.maxSize ? Math.round(s.maxSize / 1024 / 1024) : undefined
       form.setFieldsValue({
         label: fallbackLabel ?? s?.label ?? '',
         type: s?.type ?? 'generic',
-        autoSync: s?.autoSync ?? false,
-        deleteSourceAfterSync: s?.deleteSourceAfterSync ?? false,
-        syncRootDir: s?.syncRootDir && s.syncRootDir.length > 0 ? s.syncRootDir : globalPath || '',
-        folderNameRule: s?.folderNameRule ?? 'label-id',
-        folderTemplate: s?.folderTemplate ?? '{date:YYYYMMDD}-{time:HHmmss}-{title}-{device}',
-        extensions: s?.extensions ?? ['wav', 'mp3', 'm4a', 'aac', 'flac'],
+        autoSync: s?.autoSync ?? app.autoSyncDefault,
+        deleteSourceAfterSync: s?.deleteSourceAfterSync ?? app.deleteSourceAfterSyncDefault,
+        syncRootDir: s?.syncRootDir && s.syncRootDir.length > 0 ? s.syncRootDir : globalPath,
+        folderNameRule: s?.folderNameRule ?? app.folderNameRuleDefault,
+        folderTemplate:
+          s?.folderTemplate ??
+          app.renameTemplate ??
+          '{date:YYYYMMDD}-{time:HHmmss}-{title}-{device}',
+        extensions:
+          s?.extensions ??
+          (app.extensions && app.extensions.length > 0 ? app.extensions : ['wav', 'mp3', 'm4a']),
         minSize: minSizeMB,
         maxSize: maxSizeMB
       })
