@@ -37,7 +37,7 @@ export function registerDeviceListIPC(): void {
         } catch (e) {
           log.warn('checkDiskSpace error', e)
         }
-        const letter = mount.replace(/:\$/i, '').toUpperCase()
+        const letter = mount.replace(/:\\$/i, '').toUpperCase()
         const device = {
           id: letter,
           label: d.description,

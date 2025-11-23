@@ -77,10 +77,15 @@ export default function Devices(): React.JSX.Element {
       const connected = await window.api.listDevices()
       const connectedSet = new Set(connected.map((d) => d.id))
       setConnectedIds(connectedSet)
-      const all =
-        typeof window.api.listPersistedDevices === 'function'
-          ? await window.api.listPersistedDevices()
-          : connected
+      let all: DeviceInfo[] = connected
+      if (typeof window.api.listPersistedDevices === 'function') {
+        try {
+          const persistedList = await window.api.listPersistedDevices()
+          all = persistedList.length > 0 ? persistedList : connected
+        } catch {
+          all = connected
+        }
+      }
       setPersisted(all)
       if (connected.length === 0 && all.length === 0) {
         message.warning('未检测到可移动设备，请确认设备已插入且分配了盘符')
