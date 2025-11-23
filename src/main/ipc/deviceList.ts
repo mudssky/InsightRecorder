@@ -55,8 +55,8 @@ export function registerDeviceListIPC(): void {
             mountpoint: device.mountpoint,
             lastSeenAt: device.lastSeenAt
           })
-        } catch {
-          void 0
+        } catch (e) {
+          log.error('upsertDevice error', e)
         }
       }
     }
@@ -76,7 +76,8 @@ export function registerDeviceListIPC(): void {
         capacityFree: undefined,
         lastSeenAt: r.lastSeenAt ?? 0
       }))
-    } catch {
+    } catch (e) {
+      log.error('devices:persisted:list error', e)
       return []
     }
   })

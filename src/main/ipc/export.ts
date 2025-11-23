@@ -4,6 +4,7 @@ import fs from 'fs'
 import { promises as fsp } from 'fs'
 import type ElectronStore from 'electron-store'
 import { getDb, updateDeviceLastSync } from '../db'
+import log from 'electron-log'
 
 export type ExportTaskStatus = 'PENDING' | 'RUNNING' | 'SUCCESS' | 'FAILED' | 'CANCELLED'
 export interface ExportTaskSummary {
@@ -80,8 +81,8 @@ export function registerExportIPC(
                 try {
                   const parsed = JSON.parse(dev.extensions) as string[]
                   if (Array.isArray(parsed) && parsed.length) exts = parsed
-                } catch {
-                  void 0
+                } catch (e) {
+                  log.warn('parse device.extensions error', e)
                 }
               }
               if (dev.syncRootDir && dev.syncRootDir.length) targetBase = dev.syncRootDir
@@ -91,8 +92,8 @@ export function registerExportIPC(
               if (typeof dev.maxSize === 'number') maxSize = dev.maxSize
               deleteSourceAfterSync = !!dev.deleteSourceAfterSync
             }
-          } catch {
-            void 0
+          } catch (e) {
+            log.error('load device settings error', e)
           }
           const files = await collectAudioFiles(mount, new Set(exts), minSize, maxSize)
           summary.total = (summary.total ?? 0) + files.length
@@ -139,8 +140,8 @@ export function registerExportIPC(
               if (deleteSourceAfterSync) {
                 try {
                   await fsp.unlink(file)
-                } catch {
-                  void 0
+                } catch (e) {
+                  log.warn('unlink source file error', e)
                 }
               }
             } catch (err) {
@@ -159,8 +160,8 @@ export function registerExportIPC(
           try {
             getDb()
             updateDeviceLastSyncSafe(deviceId, Date.now())
-          } catch {
-            void 0
+          } catch (e) {
+            log.error('update last sync error', e)
           }
         }
         summary.status = summary.failed ? 'FAILED' : 'SUCCESS'
@@ -194,7 +195,8 @@ async function resolveMountpointById(id: string): Promise<string | undefined> {
   try {
     await fsp.access(mount)
     return mount
-  } catch {
+  } catch (e) {
+    log.error('resolveMountpointById access error', e)
     return undefined
   }
 }
@@ -212,7 +214,8 @@ async function collectAudioFiles(
     let entries: fs.Dirent[]
     try {
       entries = await fsp.readdir(dir, { withFileTypes: true })
-    } catch {
+    } catch (e) {
+      log.warn('readdir error', e)
       continue
     }
     for (const e of entries) {
@@ -227,8 +230,8 @@ async function collectAudioFiles(
           if (typeof minSize === 'number' && st.size < minSize) continue
           if (typeof maxSize === 'number' && st.size > maxSize) continue
           results.push(full)
-        } catch {
-          void 0
+        } catch (e) {
+          log.warn('stat file error', e)
         }
       }
     }
@@ -286,7 +289,7 @@ function updateDeviceLastSyncSafe(id: string, ts: number): void {
   try {
     getDb()
     updateDeviceLastSync(id, ts)
-  } catch {
-    void 0
+  } catch (e) {
+    log.error('updateDeviceLastSync error', e)
   }
 }

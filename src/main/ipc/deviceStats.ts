@@ -1,4 +1,5 @@
 import { ipcMain } from 'electron'
+import log from 'electron-log'
 import { getDb } from '../db/connection'
 import { countFilesByDevice } from '../db/stats'
 import { countSyncedByDevice } from '../db/stats'
@@ -12,7 +13,8 @@ export function registerDeviceStatsIPC(): void {
       const syncedCount = countSyncedByDevice(id)
       const device = dbGetDevice(id)
       return { fileCount, syncedCount, lastSyncAt: device?.lastSyncAt ?? null }
-    } catch {
+    } catch (e) {
+      log.error('device:stats error', e)
       return { fileCount: 0, syncedCount: 0, lastSyncAt: null }
     }
   })

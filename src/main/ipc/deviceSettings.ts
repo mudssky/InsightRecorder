@@ -1,4 +1,5 @@
 import { ipcMain } from 'electron'
+import log from 'electron-log'
 import { getDb } from '../db/connection'
 import {
   getDevice as dbGetDevice,
@@ -12,7 +13,8 @@ export function registerDeviceSettingsIPC(): void {
       getDb()
       const d = dbGetDevice(id)
       return d ?? null
-    } catch {
+    } catch (e) {
+      log.error('device-settings:get error', e)
       return null
     }
   })
@@ -77,7 +79,8 @@ export function registerDeviceSettingsIPC(): void {
           maxSize: maxSizeVal
         })
         return true
-      } catch {
+      } catch (e) {
+        log.error('device-settings:update error', e)
         return false
       }
     }

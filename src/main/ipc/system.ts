@@ -1,4 +1,5 @@
 import { ipcMain, shell, dialog } from 'electron'
+import log from 'electron-log'
 import fs from 'fs/promises'
 import path from 'path'
 
@@ -11,7 +12,8 @@ export const registerSystemIPC = (): void => {
       if (!stat.isDirectory()) return false
       const result = await shell.openPath(normalized)
       return result === ''
-    } catch {
+    } catch (e) {
+      log.error('system:open-path error', e)
       return false
     }
   })
@@ -24,7 +26,8 @@ export const registerSystemIPC = (): void => {
       })
       if (canceled || !filePaths || filePaths.length === 0) return null
       return filePaths[0]
-    } catch {
+    } catch (e) {
+      log.error('system:select-directory error', e)
       return null
     }
   })
