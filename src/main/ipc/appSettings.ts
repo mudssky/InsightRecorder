@@ -1,19 +1,10 @@
 import { ipcMain } from 'electron'
 import type ElectronStore from 'electron-store'
+import type { AppSettings } from '../../renderer/src/config/appSettings.schema'
 
-export interface AppSettingsSchema extends Record<string, unknown> {
-  exportTargetPath?: string
-  renameTemplate?: string
-  extensions?: string[]
-  concurrency?: number
-  retryCount?: number
-  clearAfterExport?: boolean
-  autoSyncDefault?: boolean
-  deleteSourceAfterSyncDefault?: boolean
-  folderNameRuleDefault?: 'label-id' | 'id-date' | 'label-date' | 'custom'
-}
+type AppSettingsStore = Partial<AppSettings>
 
-export function initAppDefaults(store: ElectronStore<AppSettingsSchema>): void {
+export function initAppDefaults(store: ElectronStore<AppSettingsStore>): void {
   if (store.get('exportTargetPath') === undefined) store.set('exportTargetPath', '')
   if (store.get('renameTemplate') === undefined)
     store.set('renameTemplate', '{date:YYYYMMDD}-{time:HHmmss}-{title}-{device}')
@@ -28,8 +19,8 @@ export function initAppDefaults(store: ElectronStore<AppSettingsSchema>): void {
     store.set('folderNameRuleDefault', 'label-id')
 }
 
-export function registerAppSettingsIPC(store: ElectronStore<AppSettingsSchema>): void {
-  ipcMain.handle('app-settings:get', (_event, key: keyof AppSettingsSchema) => {
+export function registerAppSettingsIPC(store: ElectronStore<AppSettingsStore>): void {
+  ipcMain.handle('app-settings:get', (_event, key: keyof AppSettingsStore) => {
     return store.get(key as string)
   })
 
@@ -54,8 +45,8 @@ export function registerAppSettingsIPC(store: ElectronStore<AppSettingsSchema>):
     return value
   })
 
-  ipcMain.handle('app-settings:update', (_event, partial: Partial<AppSettingsSchema>) => {
-    const keys = Object.keys(partial) as Array<keyof AppSettingsSchema>
+  ipcMain.handle('app-settings:update', (_event, partial: Partial<AppSettingsStore>) => {
+    const keys = Object.keys(partial) as Array<keyof AppSettingsStore>
     for (const k of keys) {
       const v = partial[k]
       if (v === undefined) continue

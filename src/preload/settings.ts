@@ -1,16 +1,5 @@
 import { ipcRenderer } from 'electron'
-
-export type AppSettings = {
-  exportTargetPath: string
-  renameTemplate: string
-  extensions: string[]
-  concurrency: number
-  retryCount: number
-  clearAfterExport: boolean
-  autoSyncDefault: boolean
-  deleteSourceAfterSyncDefault: boolean
-  folderNameRuleDefault: 'label-id' | 'id-date' | 'label-date' | 'custom'
-}
+import type { AppSettings } from '../renderer/src/config/appSettings.schema'
 
 export type AppSettingsPartial = Partial<AppSettings>
 

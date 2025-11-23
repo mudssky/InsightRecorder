@@ -1,7 +1,7 @@
 import { Button, Input, Row, Segmented, Space, Typography, message, Radio, Select } from 'antd'
 import { useTheme } from '../theme/context'
 import { useEffect, useState } from 'react'
-import type { AppSettings } from '../../../preload/settings'
+import type { AppSettings } from '../config/appSettings.schema'
 
 const EXT_OPTIONS = ['wav', 'mp3', 'm4a', 'flac', 'aac']
 const RULE_OPTIONS = [
