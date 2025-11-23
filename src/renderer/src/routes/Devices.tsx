@@ -191,7 +191,7 @@ export default function Devices(): React.JSX.Element {
                   </Space>
                 }
               >
-                <Space direction="vertical" style={{ width: '100%' }}>
+                <Space orientation="vertical" style={{ width: '100%' }}>
                   <Typography.Text>挂载点：{d.mountpoint}</Typography.Text>
                   <Progress percent={percent} status="active" />
                   <Typography.Text>文件数：{statsMap[d.id]?.fileCount ?? 0}</Typography.Text>
@@ -220,7 +220,7 @@ export default function Devices(): React.JSX.Element {
         }}
         destroyOnClose
       >
-        <Space direction="vertical" style={{ width: '100%' }}>
+        <Space orientation="vertical" style={{ width: '100%' }}>
           <Typography.Text>设备类型：</Typography.Text>
           <Radio.Group value={insertType} onChange={(e) => setInsertType(e.target.value)}>
             <Radio value="recorder">录音笔</Radio>

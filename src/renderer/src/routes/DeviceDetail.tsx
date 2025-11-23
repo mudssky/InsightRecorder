@@ -179,7 +179,7 @@ export default function DeviceDetail(): React.JSX.Element {
             <InputNumber min={0} style={{ width: 200 }} />
           </Form.Item>
         </Form>
-        <Space direction="vertical" style={{ width: '100%', marginTop: 12 }}>
+        <Space orientation="vertical" style={{ width: '100%', marginTop: 12 }}>
           <Typography.Text>示例路径预览：{templatePreview}</Typography.Text>
           <Typography.Text>设备文件数：{stats.fileCount}</Typography.Text>
           <Typography.Text>已同步数：{stats.syncedCount}</Typography.Text>
