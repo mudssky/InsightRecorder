@@ -15,6 +15,10 @@ export const listDevices = async (): Promise<Device[]> => {
   return ipcRenderer.invoke('device:list')
 }
 
+export const listPersistedDevices = async (): Promise<Device[]> => {
+  return ipcRenderer.invoke('devices:persisted:list')
+}
+
 export const onDeviceChanged = (handler: (payload: DeviceChangePayload) => void): (() => void) => {
   const listener = (_e: Electron.IpcRendererEvent, payload: DeviceChangePayload): void =>
     handler(payload)

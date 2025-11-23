@@ -59,4 +59,22 @@ export function registerDeviceListIPC(): void {
     }
     return devices
   })
+  ipcMain.handle('devices:persisted:list', async () => {
+    try {
+      const { listDevices } = await import('../db/devices')
+      const rows = listDevices()
+      // 映射到前端使用的数据结构
+      return rows.map((r) => ({
+        id: r.id,
+        label: r.label ?? undefined,
+        mountpoint: r.mountpoint,
+        type: r.type,
+        capacityTotal: undefined,
+        capacityFree: undefined,
+        lastSeenAt: r.lastSeenAt ?? 0
+      }))
+    } catch {
+      return []
+    }
+  })
 }

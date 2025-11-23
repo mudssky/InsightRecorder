@@ -1,5 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Button, Card, Col, Modal, Progress, Row, Space, Typography, message, Radio } from 'antd'
+import {
+  Button,
+  Card,
+  Col,
+  Modal,
+  Progress,
+  Row,
+  Space,
+  Typography,
+  message,
+  Radio,
+  Select,
+  Input,
+  Switch
+} from 'antd'
 import { useRouter } from '@tanstack/react-router'
 
 interface DeviceInfo {
@@ -9,30 +23,14 @@ interface DeviceInfo {
   capacityTotal?: number
   capacityFree?: number
   lastSeenAt: number
-}
-
-interface ProgressPayload {
-  taskId: string
-  stage: 'skip' | 'copied' | 'failed'
-  currentFile: string
-  successCount: number
-  failCount: number
-  total: number
-  error?: string
+  type?: 'recorder' | 'generic' | 'ignored'
 }
 
 export default function Devices(): React.JSX.Element {
   const router = useRouter()
-  const [devices, setDevices] = useState<DeviceInfo[]>([])
-  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [persisted, setPersisted] = useState<DeviceInfo[]>([])
+  const [connectedIds, setConnectedIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
-  const [progress, setProgress] = useState<{
-    taskId?: string
-    success: number
-    failed: number
-    total: number
-  }>({ success: 0, failed: 0, total: 0 })
-  const [unsubscribe, setUnsubscribe] = useState<(() => void) | null>(null)
   const [statsMap, setStatsMap] = useState<
     Record<string, { fileCount: number; syncedCount: number }>
   >({})
@@ -42,11 +40,29 @@ export default function Devices(): React.JSX.Element {
   })
   const [insertType, setInsertType] = useState<'recorder' | 'generic' | 'ignored'>('recorder')
   const [insertAutoSync, setInsertAutoSync] = useState<boolean>(true)
+  const [showDisconnected, setShowDisconnected] = useState<boolean>(true)
+  const [typeFilter, setTypeFilter] = useState<'recorder' | 'generic' | 'ignored' | 'all'>('all')
+  const [query, setQuery] = useState<string>('')
 
-  const percent = useMemo(() => {
-    const done = progress.success + progress.failed
-    return progress.total > 0 ? Math.round((done / progress.total) * 100) : 0
-  }, [progress])
+  const displayDevices = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    const filtered = persisted.filter((d) => {
+      const connected = connectedIds.has(d.id)
+      if (!showDisconnected && !connected) return false
+      if (typeFilter !== 'all' && d.type && d.type !== typeFilter) return false
+      if (q) {
+        const hit =
+          (d.label ?? '').toLowerCase().includes(q) ||
+          d.mountpoint.toLowerCase().includes(q) ||
+          d.id.toLowerCase().includes(q)
+        if (!hit) return false
+      }
+      return true
+    })
+    return filtered
+      .map((d) => ({ ...d, connected: connectedIds.has(d.id) }))
+      .sort((a, b) => (a.connected === b.connected ? 0 : a.connected ? -1 : 1))
+  }, [persisted, connectedIds, showDisconnected, typeFilter, query])
 
   const refresh = async (): Promise<void> => {
     setLoading(true)
@@ -57,10 +73,16 @@ export default function Devices(): React.JSX.Element {
         )
         return
       }
-      const list = await window.api.listDevices()
-      setDevices(list)
+      const connected = await window.api.listDevices()
+      const connectedSet = new Set(connected.map((d) => d.id))
+      setConnectedIds(connectedSet)
+      const all =
+        typeof window.api.listPersistedDevices === 'function'
+          ? await window.api.listPersistedDevices()
+          : connected
+      setPersisted(all)
       const statsEntries = await Promise.all(
-        list.map(async (d) => {
+        all.map(async (d) => {
           try {
             const st = await window.api.getDeviceStats(d.id)
             return [d.id, { fileCount: st.fileCount, syncedCount: st.syncedCount }] as const
@@ -82,7 +104,8 @@ export default function Devices(): React.JSX.Element {
     const off = window.api?.onDeviceChanged?.((payload) => {
       void (async () => {
         await refresh()
-        for (const d of devices) {
+        const connected = await window.api.listDevices()
+        for (const d of connected) {
           try {
             const s = await window.api.getDeviceSettings(d.id)
             if (s?.type === 'recorder' && s.autoSync && !autoSyncTriggered.has(d.id)) {
@@ -105,32 +128,10 @@ export default function Devices(): React.JSX.Element {
       })()
     })
     return () => {
-      if (unsubscribe) unsubscribe()
       if (typeof off === 'function') off()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  const startExport = async (): Promise<void> => {
-    if (selected.size === 0) {
-      message.warning('请先选择设备')
-      return
-    }
-    const deviceIds = Array.from(selected)
-    const { taskId } = await window.api.startExport({ deviceIds })
-    const un = window.api.onExportProgress((p: ProgressPayload) => {
-      if (p.taskId !== taskId) return
-      setProgress({ taskId, success: p.successCount, failed: p.failCount, total: p.total })
-    })
-    setUnsubscribe(() => un)
-  }
-
-  const cancel = async (): Promise<void> => {
-    if (progress.taskId) {
-      await window.api.cancelExport(progress.taskId)
-      message.info('已请求取消导出')
-    }
-  }
 
   return (
     <div className="p-4">
@@ -138,35 +139,45 @@ export default function Devices(): React.JSX.Element {
         <Button onClick={refresh} loading={loading}>
           刷新
         </Button>
-        <Button type="primary" onClick={startExport} disabled={selected.size === 0}>
-          导出选中
-        </Button>
-        <Button danger onClick={cancel} disabled={!progress.taskId}>
-          取消导出
-        </Button>
+        <Switch
+          checked={showDisconnected}
+          onChange={setShowDisconnected}
+          checkedChildren="显示未连接"
+          unCheckedChildren="隐藏未连接"
+        />
+        <Select
+          value={typeFilter}
+          onChange={setTypeFilter}
+          style={{ width: 160 }}
+          options={[
+            { label: '全部类型', value: 'all' },
+            { label: '录音笔', value: 'recorder' },
+            { label: '通用设备', value: 'generic' },
+            { label: '忽略', value: 'ignored' }
+          ]}
+        />
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="搜索名称/盘符/ID"
+          style={{ width: 220 }}
+        />
       </Space>
       <Row gutter={[12, 12]}>
-        {devices.map((d) => {
+        {displayDevices.map((d) => {
           const total = d.capacityTotal ?? 0
           const free = d.capacityFree ?? 0
           const used = total > 0 ? total - free : 0
           const percent = total > 0 ? Math.round((used / total) * 100) : 0
-          const checked = selected.has(d.id)
           return (
             <Col key={d.id} span={8}>
               <Card
                 hoverable
-                onClick={() => {
-                  const next = new Set(selected)
-                  if (checked) next.delete(d.id)
-                  else next.add(d.id)
-                  setSelected(next)
-                }}
                 title={d.label || '可移动设备'}
                 extra={
                   <Space>
-                    <Typography.Text type={checked ? 'success' : undefined}>
-                      {checked ? '已选择' : '未选择'}
+                    <Typography.Text type={connectedIds.has(d.id) ? 'success' : 'secondary'}>
+                      {connectedIds.has(d.id) ? '已连接' : '未连接'}
                     </Typography.Text>
                     <Button
                       size="small"
@@ -191,20 +202,6 @@ export default function Devices(): React.JSX.Element {
           )
         })}
       </Row>
-      <Modal
-        open={!!progress.taskId}
-        title="导出进度"
-        onCancel={() => setProgress({ success: 0, failed: 0, total: 0 })}
-        footer={null}
-        destroyOnClose
-      >
-        <Space direction="vertical" style={{ width: '100%' }}>
-          <Progress percent={percent} />
-          <Typography.Text>成功：{progress.success}</Typography.Text>
-          <Typography.Text>失败：{progress.failed}</Typography.Text>
-          <Typography.Text>总数：{progress.total}</Typography.Text>
-        </Space>
-      </Modal>
       <Modal
         open={insertModal.open}
         title="新设备配置"

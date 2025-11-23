@@ -89,3 +89,13 @@ export function updateDeviceLastSync(id: string, ts: number): void {
   const db = getDb()
   db.prepare('UPDATE devices SET lastSyncAt=? WHERE id=?').run(ts, id)
 }
+
+export function listDevices(): DeviceRow[] {
+  const db = getDb()
+  const rows = db
+    .prepare(
+      'SELECT id,label,mountpoint,type,autoSync,deleteSourceAfterSync,syncRootDir,folderNameRule,folderTemplate,extensions,minSize,maxSize,createdAt,updatedAt,lastSeenAt,lastSyncAt FROM devices ORDER BY updatedAt DESC'
+    )
+    .all() as DeviceRow[]
+  return rows
+}
