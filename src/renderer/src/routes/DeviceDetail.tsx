@@ -138,11 +138,13 @@ export default function DeviceDetail(): React.JSX.Element {
       })
       if (ok) {
         message.success('已保存设备设置')
-        try {
-          const { taskId } = await window.api.startExport({ deviceIds: [id] })
-          if (taskId) message.success('已启动同步任务')
-        } catch (e) {
-          message.error(String(e))
+        if (values.autoSync === true) {
+          try {
+            const { taskId } = await window.api.startExport({ deviceIds: [id] })
+            if (taskId) message.success('已启动同步任务')
+          } catch (e) {
+            message.error(String(e))
+          }
         }
       } else message.error('保存失败')
       await refresh()
